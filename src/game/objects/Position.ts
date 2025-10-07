@@ -44,15 +44,15 @@ export class HexUtils {
   static createBoard(): Map<string, BoardPosition> {
     const board = new Map<string, BoardPosition>();
     
-    const add = (q: number, r: number, player: Player, z1: boolean, z2: boolean, g1: boolean, g2: boolean) => {
+    const add = (q: number, r: number, player: Player, z1: boolean, z2: boolean, g1: boolean, g2: boolean, cornerNE?: boolean, cornerSE?: boolean, cornerSW?: boolean, cornerNW?: boolean) => {
       const s = -q - r;
       board.set(HexUtils.toKey({ q, r, s }), {
-        q, r, s, player, isStartZone1: z1, isStartZone2: z2, isGoalZone1: g1, isGoalZone2: g2
+        q, r, s, player, isStartZone1: z1, isStartZone2: z2, isGoalZone1: g1, isGoalZone2: g2,
+        isCornerNE: cornerNE, isCornerSE: cornerSE, isCornerSW: cornerSW, isCornerNW: cornerNW
       });
     };
 
-    // Simplified two-player Chinese Checkers board
-    // Central diamond area - using axial coordinates
+    // Central hexagonal area - 6-player board layout
     for (let q = -4; q <= 4; q++) {
       for (let r = -4; r <= 4; r++) {
         const s = -q - r;
@@ -62,35 +62,101 @@ export class HexUtils {
       }
     }
 
-    // Player 1's triangle (Blue) - bottom-left
+    // Corner NE: North-East (Green) - Start with this one
+    // Row 4 (tip)
+    add(8, -4, Player.NONE, false, false, false, false, true, false, false, false);
+    // Row 3
+    add(7, -4, Player.NONE, false, false, false, false, true, false, false, false);
+    add(7, -3, Player.NONE, false, false, false, false, true, false, false, false);
+    // Row 2
+    add(6, -4, Player.NONE, false, false, false, false, true, false, false, false);
+    add(6, -3, Player.NONE, false, false, false, false, true, false, false, false);
+    add(6, -2, Player.NONE, false, false, false, false, true, false, false, false);
+    // Row 1 (base)
+    add(5, -4, Player.NONE, false, false, false, false, true, false, false, false);
+    add(5, -3, Player.NONE, false, false, false, false, true, false, false, false);
+    add(5, -2, Player.NONE, false, false, false, false, true, false, false, false);
+    add(5, -1, Player.NONE, false, false, false, false, true, false, false, false);
+
+    // Player 2 STARTS HERE - North
+    // Row 4 (tip)
+    add(4, -8, Player.PLAYER2, false, true, true, false);
+    // Row 3
+    add(4, -7, Player.PLAYER2, false, true, true, false);
+    add(3, -7, Player.PLAYER2, false, true, true, false);
+    // Row 2
+    add(4, -6, Player.PLAYER2, false, true, true, false);
+    add(3, -6, Player.PLAYER2, false, true, true, false);
+    add(2, -6, Player.PLAYER2, false, true, true, false);
+    // Row 1 (base)
+    add(4, -5, Player.PLAYER2, false, true, true, false);
+    add(3, -5, Player.PLAYER2, false, true, true, false);
+    add(2, -5, Player.PLAYER2, false, true, true, false);
+    add(1, -5, Player.PLAYER2, false, true, true, false);
+
+    // Corner SE: South-East (Orange)
+    // Row 4 (tip)
+    add(4, 4, Player.NONE, false, false, false, false, false, true, false, false);
+    // Row 3
+    add(4, 3, Player.NONE, false, false, false, false, false, true, false, false);
+    add(3, 4, Player.NONE, false, false, false, false, false, true, false, false);
+    // Row 2
+    add(4, 2, Player.NONE, false, false, false, false, false, true, false, false);
+    add(3, 3, Player.NONE, false, false, false, false, false, true, false, false);
+    add(2, 4, Player.NONE, false, false, false, false, false, true, false, false);
+    // Row 1 (base)
+    add(4, 1, Player.NONE, false, false, false, false, false, true, false, false);
+    add(3, 2, Player.NONE, false, false, false, false, false, true, false, false);
+    add(2, 3, Player.NONE, false, false, false, false, false, true, false, false);
+    add(1, 4, Player.NONE, false, false, false, false, false, true, false, false);
+
+    // Corner SW: South-West (Purple)
+    // Row 4 (tip)
+    add(-8, 4, Player.NONE, false, false, false, false, false, false, true, false);
+    // Row 3
+    add(-7, 3, Player.NONE, false, false, false, false, false, false, true, false);
+    add(-7, 4, Player.NONE, false, false, false, false, false, false, true, false);
+    // Row 2
+    add(-6, 2, Player.NONE, false, false, false, false, false, false, true, false);
+    add(-6, 3, Player.NONE, false, false, false, false, false, false, true, false);
+    add(-6, 4, Player.NONE, false, false, false, false, false, false, true, false);
+    // Row 1 (base)
+    add(-5, 1, Player.NONE, false, false, false, false, false, false, true, false);
+    add(-5, 2, Player.NONE, false, false, false, false, false, false, true, false);
+    add(-5, 3, Player.NONE, false, false, false, false, false, false, true, false);
+    add(-5, 4, Player.NONE, false, false, false, false, false, false, true, false);
+
+    // Player 1 STARTS HERE - South
+    // Row 4 (tip)
     add(-4, 8, Player.PLAYER1, true, false, false, true);
-    
+    // Row 3
     add(-4, 7, Player.PLAYER1, true, false, false, true);
     add(-3, 7, Player.PLAYER1, true, false, false, true);
-    
+    // Row 2
     add(-4, 6, Player.PLAYER1, true, false, false, true);
     add(-3, 6, Player.PLAYER1, true, false, false, true);
     add(-2, 6, Player.PLAYER1, true, false, false, true);
-    
+    // Row 1 (base)
     add(-4, 5, Player.PLAYER1, true, false, false, true);
     add(-3, 5, Player.PLAYER1, true, false, false, true);
     add(-2, 5, Player.PLAYER1, true, false, false, true);
     add(-1, 5, Player.PLAYER1, true, false, false, true);
 
-    // Player 2's triangle (Red) - top-right
-    add(4, -8, Player.PLAYER2, false, true, true, false);
-    
-    add(4, -7, Player.PLAYER2, false, true, true, false);
-    add(3, -7, Player.PLAYER2, false, true, true, false);
-    
-    add(4, -6, Player.PLAYER2, false, true, true, false);
-    add(3, -6, Player.PLAYER2, false, true, true, false);
-    add(2, -6, Player.PLAYER2, false, true, true, false);
-    
-    add(4, -5, Player.PLAYER2, false, true, true, false);
-    add(3, -5, Player.PLAYER2, false, true, true, false);
-    add(2, -5, Player.PLAYER2, false, true, true, false);
-    add(1, -5, Player.PLAYER2, false, true, true, false);
+    // Corner NW: North-West (Pink)
+    // Row 4 (tip)
+    add(-4, -4, Player.NONE, false, false, false, false, false, false, false, true);
+    // Row 3
+    add(-4, -3, Player.NONE, false, false, false, false, false, false, false, true);
+    add(-3, -4, Player.NONE, false, false, false, false, false, false, false, true);
+    // Row 2
+    add(-4, -2, Player.NONE, false, false, false, false, false, false, false, true);
+    add(-3, -3, Player.NONE, false, false, false, false, false, false, false, true);
+    add(-2, -4, Player.NONE, false, false, false, false, false, false, false, true);
+    // Row 1 (base)
+    add(-4, -1, Player.NONE, false, false, false, false, false, false, false, true);
+    add(-3, -2, Player.NONE, false, false, false, false, false, false, false, true);
+    add(-2, -3, Player.NONE, false, false, false, false, false, false, false, true);
+    add(-1, -4, Player.NONE, false, false, false, false, false, false, false, true);
 
     return board;
   }

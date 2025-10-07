@@ -42,6 +42,14 @@ export class Board {
         fillColor = THEME.player1GoalColor;
       } else if (pos.isGoalZone2 && pos.player === Player.NONE) {
         fillColor = THEME.player2GoalColor;
+      } else if (pos.isCornerNE) {
+        fillColor = THEME.cornerNEColor;
+      } else if (pos.isCornerSE) {
+        fillColor = THEME.cornerSEColor;
+      } else if (pos.isCornerSW) {
+        fillColor = THEME.cornerSWColor;
+      } else if (pos.isCornerNW) {
+        fillColor = THEME.cornerNWColor;
       }
       
       this.drawHexagon(pixel.x, pixel.y, this.hexSize, fillColor, THEME.hexStrokeColor);

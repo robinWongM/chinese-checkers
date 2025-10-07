@@ -10,6 +10,13 @@ export const THEME = {
   player2StartColor: 0x7f1d1d, // Dark Red
   player1GoalColor: 0x1e3a8a,
   player2GoalColor: 0x7f1d1d,
+  
+  // Extra corners (for 6-player layout, currently empty)
+  cornerNEColor: 0x10B981, // Green - North-East
+  cornerSEColor: 0xF59E0B, // Orange - South-East  
+  cornerSWColor: 0x8B5CF6, // Purple - South-West
+  cornerNWColor: 0xEC4899, // Pink - North-West
+  
   hexStrokeColor: 0x6b7280,
   
   // Highlight colors

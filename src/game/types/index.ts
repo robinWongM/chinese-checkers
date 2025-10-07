@@ -12,10 +12,14 @@ export interface HexPosition {
 
 export interface BoardPosition extends HexPosition {
   player: Player;
-  isStartZone1: boolean;
-  isStartZone2: boolean;
+  isStartZone1: boolean; // South - Player 1 (Blue)
+  isStartZone2: boolean; // North - Player 2 (Red)
   isGoalZone1: boolean;
   isGoalZone2: boolean;
+  isCornerNE?: boolean; // North-East
+  isCornerSE?: boolean; // South-East
+  isCornerSW?: boolean; // South-West
+  isCornerNW?: boolean; // North-West
 }
 
 export interface GameState {

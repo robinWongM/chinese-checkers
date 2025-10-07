@@ -33,7 +33,8 @@ A mobile-first Chinese Checkers game built with Phaser 3, TypeScript, and Tailwi
 ## 🎮 How to Play
 
 ### Game Rules
-- **Players:** 2 players (Blue vs Red)
+- **Board Layout:** Full 6-corner star pattern (traditional Chinese Checkers layout)
+- **Players:** 2 players (Blue vs Red) - only 2 opposite corners are populated with pieces
 - **Objective:** Move all your pieces from your starting triangle to the opposite goal triangle
 - **Goal:** First player to get all 10 pieces into the goal wins
 
@@ -54,7 +55,7 @@ A mobile-first Chinese Checkers game built with Phaser 3, TypeScript, and Tailwi
 - **Language:** TypeScript 5.3
 - **Styling:** Tailwind CSS 3.4
 - **Build Tool:** Vite 5.0
-- **Architecture:** Hexagonal grid system with cube coordinates
+- **Architecture:** Hexagonal grid system with cube coordinates (6-corner star layout)
 
 ## 📁 Project Structure
 
@@ -87,6 +88,7 @@ A mobile-first Chinese Checkers game built with Phaser 3, TypeScript, and Tailwi
 - Prevents unwanted zoom/scroll
 
 ✅ **Game Features**
+- 6-corner star board layout (visual only - 4 corners remain empty)
 - 2-player turn-based gameplay
 - Valid move highlighting
 - Piece selection feedback
@@ -130,7 +132,7 @@ Deploy the `dist/` folder to:
 ## 🎯 Future Enhancements
 
 Potential features to add:
-- [ ] 3-6 player support
+- [ ] 3-6 player game logic (board layout already supports 6 corners)
 - [ ] AI opponent (single player)
 - [ ] Undo move functionality
 - [ ] Move history display

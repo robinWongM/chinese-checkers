@@ -21,7 +21,8 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.cameras.main;
 
-    const hexSize = Math.min(width, height) / 20;
+    // Reduced hex size to accommodate 6-corner layout (board extends to ±8)
+    const hexSize = Math.min(width, height) / 32;
     const centerX = width / 2;
     const centerY = height / 2;
 
