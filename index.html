@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Chinese Checkers</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-900">
+  <!-- UI Overlay -->
+  <div id="ui-overlay" class="absolute top-0 left-0 w-full z-10 pointer-events-none">
+    <!-- Top Bar -->
+    <div class="bg-gradient-to-b from-gray-900/95 to-transparent p-4 pointer-events-auto">
+      <div class="flex justify-between items-center max-w-md mx-auto">
+        <div id="player-turn" class="text-white font-bold text-lg">
+          Player 1's Turn
+        </div>
+        <button id="restart-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+          Restart
+        </button>
+      </div>
+    </div>
+
+    <!-- Win Message -->
+    <div id="win-message" class="hidden fixed inset-0 flex items-center justify-center bg-black/80 pointer-events-auto">
+      <div class="bg-gray-800 rounded-2xl p-8 max-w-sm mx-4 text-center shadow-2xl">
+        <h2 id="winner-text" class="text-3xl font-bold text-white mb-4">Player 1 Wins!</h2>
+        <p class="text-gray-300 mb-6">Congratulations on your victory!</p>
+        <button id="new-game-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-colors w-full">
+          New Game
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Container -->
+  <div id="game-container" class="w-full h-screen"></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+
