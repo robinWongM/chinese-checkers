@@ -75,7 +75,7 @@ export class GameLogic {
 
     // 跳跃移动（可以连续跳）
     const beforeJumps = moves.length;
-    this.findJumpMoves(from, moves, visited);
+    this.findJumpMoves(from, moves, visited, from);  // 传入起始位置
     const jumpMoves = moves.length - beforeJumps;
     
     if (jumpMoves > 0) {
@@ -88,11 +88,22 @@ export class GameLogic {
   private findJumpMoves(
     from: HexPosition, 
     moves: HexPosition[], 
-    visited: Set<string>
+    visited: Set<string>,
+    originalStart: HexPosition  // 新增：原始起点位置
   ): void {
     visited.add(HexUtils.toKey(from));
 
     const neighbors = HexUtils.getNeighbors(from);
+    
+    // 辅助函数：检查位置是否有棋子（把起始位置当作空位）
+    const hasPieceAt = (pos: HexPosition): boolean => {
+      // 如果是起始位置，当作空位
+      if (HexUtils.equals(pos, originalStart)) {
+        return false;
+      }
+      const boardPos = this.gameState.board.get(HexUtils.toKey(pos));
+      return boardPos ? boardPos.player !== Player.NONE : false;
+    };
     
     console.log(`  Checking jumps from (${from.q},${from.r})...`);
     
@@ -100,10 +111,10 @@ export class GameLogic {
       const neighborKey = HexUtils.toKey(neighbor);
       const neighborPos = this.gameState.board.get(neighborKey);
       
-      // 检查相邻位置是否有棋子（可以跳过）
-      if (neighborPos && neighborPos.player !== Player.NONE) {
-        console.log(`    Found piece at (${neighbor.q},${neighbor.r}) - checking jump...`);
-        
+      if (!neighborPos) return; // 不在棋盘上
+      
+      // 类型1: 直接跳过相邻的棋子
+      if (hasPieceAt(neighbor)) {
         const jumpPos = {
           q: neighbor.q + (neighbor.q - from.q),
           r: neighbor.r + (neighbor.r - from.r),
@@ -113,25 +124,100 @@ export class GameLogic {
         const jumpKey = HexUtils.toKey(jumpPos);
         const jumpBoardPos = this.gameState.board.get(jumpKey);
 
-        console.log(`      Jump destination: (${jumpPos.q},${jumpPos.r})`);
-        console.log(`      Position exists on board? ${!!jumpBoardPos}`);
-        console.log(`      Is empty? ${jumpBoardPos?.player === Player.NONE}`);
-        console.log(`      Already visited? ${visited.has(jumpKey)}`);
-
         if (jumpBoardPos && 
             jumpBoardPos.player === Player.NONE && 
             !visited.has(jumpKey)) {
           
-          console.log(`      ✅ Valid jump to (${jumpPos.q},${jumpPos.r})!`);
+          console.log(`    ✅ Jump over piece at (${neighbor.q},${neighbor.r}) to (${jumpPos.q},${jumpPos.r})`);
           
           if (!moves.some(m => HexUtils.equals(m, jumpPos))) {
             moves.push(jumpPos);
           }
 
-          // 递归查找连续跳跃
-          this.findJumpMoves(jumpPos, moves, visited);
-        } else {
-          console.log(`      ❌ Cannot jump to (${jumpPos.q},${jumpPos.r})`);
+          this.findJumpMoves(jumpPos, moves, visited, originalStart);
+        }
+      }
+      
+      // 类型2: 等距跳（空跳）- 跳过空格到有棋子的位置，再等距跳到另一边
+      if (!hasPieceAt(neighbor)) {
+        // 沿着这个方向继续搜索，找到第一个有棋子的位置
+        const direction = {
+          q: neighbor.q - from.q,
+          r: neighbor.r - from.r,
+          s: neighbor.s - from.s
+        };
+        
+        let distance = 1;
+        let currentPos = neighbor;
+        
+        while (distance <= 10) { // 最多搜索10步防止无限循环
+          const nextPos = {
+            q: currentPos.q + direction.q,
+            r: currentPos.r + direction.r,
+            s: currentPos.s + direction.s
+          };
+          
+          const nextKey = HexUtils.toKey(nextPos);
+          const nextBoardPos = this.gameState.board.get(nextKey);
+          
+          if (!nextBoardPos) break; // 超出棋盘
+          
+          if (hasPieceAt(nextPos)) {
+            // 找到了棋子！计算等距跳的目标位置
+            // 目标 = 棋子 + (棋子 - 起点)
+            const jumpPos = {
+              q: nextPos.q + (nextPos.q - from.q),
+              r: nextPos.r + (nextPos.r - from.r),
+              s: nextPos.s + (nextPos.s - from.s)
+            };
+            
+            const jumpKey = HexUtils.toKey(jumpPos);
+            const jumpBoardPos = this.gameState.board.get(jumpKey);
+            
+            if (jumpBoardPos && 
+                jumpBoardPos.player === Player.NONE && 
+                !visited.has(jumpKey)) {
+              
+              // 🔍 关键检查：验证从棋子到目标的路径是否都是空的
+              let pathClear = true;
+              let checkPos = nextPos;
+              
+              // 需要检查从棋子的下一格到目标的前一格，一共 distance 个位置
+              for (let i = 0; i < distance; i++) {
+                checkPos = {
+                  q: checkPos.q + direction.q,
+                  r: checkPos.r + direction.r,
+                  s: checkPos.s + direction.s
+                };
+                
+                const checkKey = HexUtils.toKey(checkPos);
+                const checkBoardPos = this.gameState.board.get(checkKey);
+                
+                // 所有中间位置都必须为空（不包括目标）
+                // 注意：起始位置被视为空，因为我们要移动这个棋子
+                if (!checkBoardPos || (checkBoardPos.player !== Player.NONE && !HexUtils.equals(checkPos, originalStart))) {
+                  pathClear = false;
+                  console.log(`    ❌ Path blocked at (${checkPos.q},${checkPos.r})`);
+                  break;
+                }
+              }
+              
+              if (pathClear) {
+                console.log(`    ✅ Equal-distance jump: (${from.q},${from.r}) -> piece at (${nextPos.q},${nextPos.r}) -> (${jumpPos.q},${jumpPos.r}) [distance=${distance+1}]`);
+                
+                if (!moves.some(m => HexUtils.equals(m, jumpPos))) {
+                  moves.push(jumpPos);
+                }
+                
+                this.findJumpMoves(jumpPos, moves, visited, originalStart);
+              }
+            }
+            break; // 找到棋子后停止
+          }
+          
+          // 继续沿着这个方向搜索
+          currentPos = nextPos;
+          distance++;
         }
       }
     });
@@ -173,5 +259,59 @@ export class GameLogic {
       validMoves: [],
       winner: null
     };
+  }
+
+  public exportState(): string {
+    // 将棋盘状态转换为简单对象
+    const boardArray: any[] = [];
+    this.gameState.board.forEach((pos) => {
+      boardArray.push({
+        q: pos.q,
+        r: pos.r,
+        s: pos.s,
+        player: pos.player
+      });
+    });
+
+    const state = {
+      currentPlayer: this.gameState.currentPlayer,
+      board: boardArray
+    };
+
+    return JSON.stringify(state, null, 2);
+  }
+
+  public importState(jsonState: string): boolean {
+    try {
+      const state = JSON.parse(jsonState);
+      
+      // 更新当前玩家
+      this.gameState.currentPlayer = state.currentPlayer;
+      
+      // 重建棋盘 - 保留原始棋盘结构，只更新棋子位置
+      this.gameState.board.forEach(pos => {
+        pos.player = Player.NONE;
+      });
+      
+      // 设置新的棋子位置
+      state.board.forEach((piece: any) => {
+        const key = HexUtils.toKey({ q: piece.q, r: piece.r, s: piece.s });
+        const boardPos = this.gameState.board.get(key);
+        if (boardPos) {
+          boardPos.player = piece.player;
+        }
+      });
+
+      // 清除选择状态
+      this.gameState.selectedPosition = null;
+      this.gameState.validMoves = [];
+      this.gameState.winner = null;
+
+      console.log('✅ Board state imported successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to import board state:', error);
+      return false;
+    }
   }
 }

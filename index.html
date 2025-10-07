@@ -20,13 +20,23 @@
   <div id="ui-overlay" class="absolute top-0 left-0 w-full z-10 pointer-events-none">
     <!-- Top Bar -->
     <div class="bg-gradient-to-b from-gray-900/95 to-transparent p-4 pointer-events-auto">
-      <div class="flex justify-between items-center max-w-md mx-auto">
-        <div id="player-turn" class="text-white font-bold text-lg">
-          Player 1's Turn
+      <div class="flex flex-col gap-2 max-w-md mx-auto">
+        <div class="flex justify-between items-center">
+          <div id="player-turn" class="text-white font-bold text-lg">
+            Player 1's Turn
+          </div>
+          <button id="restart-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
+            Restart
+          </button>
         </div>
-        <button id="restart-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors">
-          Restart
-        </button>
+        <div class="flex gap-2">
+          <button id="export-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors flex-1">
+            📋 Export
+          </button>
+          <button id="import-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition-colors flex-1">
+            📥 Import
+          </button>
+        </div>
       </div>
     </div>
 

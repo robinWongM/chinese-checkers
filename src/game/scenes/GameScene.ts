@@ -74,8 +74,46 @@ export class GameScene extends Phaser.Scene {
       const rotatedX = relX * Math.cos(rotation) - relY * Math.sin(rotation) + centerX;
       const rotatedY = relX * Math.sin(rotation) + relY * Math.cos(rotation) + centerY;
       
+      const clickedPos = this.board.findPositionByPixel(rotatedX, rotatedY);
+      
+      // 🎯 显示点击位置的坐标（用于调试）
+      if (clickedPos) {
+        const boardPos = this.board.getPositionAt(clickedPos);
+        const status = !boardPos ? 'OFF_BOARD' : 
+                       boardPos.player === Player.NONE ? 'EMPTY' :
+                       boardPos.player === Player.PLAYER1 ? 'BLUE(P1)' : 'RED(P2)';
+        console.log(`🎯 CLICKED: (${clickedPos.q}, ${clickedPos.r}) - ${status}`);
+        
+        // 如果有选中的棋子，显示从选中位置到点击位置的路径信息
+        if (selectedPos) {
+          console.log(`  📍 Path analysis from (${selectedPos.q}, ${selectedPos.r}) to (${clickedPos.q}, ${clickedPos.r}):`);
+          console.log(`     Delta: q=${clickedPos.q - selectedPos.q}, r=${clickedPos.r - selectedPos.r}`);
+          
+          // 检查中间点
+          const dq = clickedPos.q - selectedPos.q;
+          const dr = clickedPos.r - selectedPos.r;
+          
+          if (Math.abs(dq) === Math.abs(dr) || dq === 0 || dr === 0) {
+            // 在同一条线上，显示中间的格子
+            const steps = Math.max(Math.abs(dq), Math.abs(dr));
+            console.log(`     Steps: ${steps}`);
+            
+            for (let i = 1; i < steps; i++) {
+              const midQ = selectedPos.q + Math.sign(dq) * i;
+              const midR = selectedPos.r + Math.sign(dr) * i;
+              const midPos = this.board.getPositionAt({q: midQ, r: midR, s: -midQ - midR});
+              const midStatus = !midPos ? 'OFF_BOARD' : 
+                               midPos.player === Player.NONE ? 'EMPTY' :
+                               midPos.player === Player.PLAYER1 ? 'BLUE' : 'RED';
+              console.log(`     (${midQ}, ${midR}): ${midStatus}`);
+            }
+          }
+        }
+      } else {
+        console.log(`🎯 CLICKED: Outside board`);
+      }
+      
       if (selectedPos) {
-        const clickedPos = this.board.findPositionByPixel(rotatedX, rotatedY);
         
         if (clickedPos) {
           const clickedBoardPos = this.board.getPositionAt(clickedPos);
@@ -159,9 +197,53 @@ export class GameScene extends Phaser.Scene {
   private setupUIButtons(): void {
     const restartBtn = document.getElementById('restart-btn')!;
     const newGameBtn = document.getElementById('new-game-btn')!;
+    const exportBtn = document.getElementById('export-btn')!;
+    const importBtn = document.getElementById('import-btn')!;
 
     restartBtn.onclick = () => this.restartGame();
     newGameBtn.onclick = () => this.restartGame();
+    
+    exportBtn.onclick = () => {
+      const state = this.gameLogic.exportState();
+      navigator.clipboard.writeText(state).then(() => {
+        console.log('📋 Board state copied to clipboard!');
+        console.log(state);
+        alert('✅ 棋盘状态已复制到剪贴板！');
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('❌ 复制失败，请查看console获取状态');
+        console.log(state);
+      });
+    };
+    
+    importBtn.onclick = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (this.gameLogic.importState(text)) {
+          this.board.clearHighlights();
+          this.board.renderBoard(this.gameLogic.getState().board);
+          this.updateUI();
+          this.updatePieceInteractivity();
+          alert('✅ 棋盘状态导入成功！');
+        } else {
+          alert('❌ 导入失败，JSON格式不正确');
+        }
+      } catch (err) {
+        console.error('Failed to read clipboard:', err);
+        const text = prompt('请粘贴棋盘状态JSON:');
+        if (text) {
+          if (this.gameLogic.importState(text)) {
+            this.board.clearHighlights();
+            this.board.renderBoard(this.gameLogic.getState().board);
+            this.updateUI();
+            this.updatePieceInteractivity();
+            alert('✅ 棋盘状态导入成功！');
+          } else {
+            alert('❌ 导入失败，JSON格式不正确');
+          }
+        }
+      }
+    };
   }
 
   private updateUI(): void {

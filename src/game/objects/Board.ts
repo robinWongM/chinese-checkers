@@ -191,4 +191,12 @@ export class Board {
 
     return closestPos;
   }
+
+  public renderBoard(newBoard: Map<string, BoardPosition>): void {
+    // 更新内部棋盘状态
+    this.board = newBoard;
+    
+    // 重新渲染整个棋盘
+    this.render();
+  }
 }
