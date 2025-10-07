@@ -57,6 +57,17 @@ export class GameScene extends Phaser.Scene {
       
       const clickedPos = this.board.findPositionByPixel(coords.x, coords.y);
       
+      // Debug: Display clicked position
+      if (clickedPos) {
+        console.log(`🎯 Clicked position: (q: ${clickedPos.q}, r: ${clickedPos.r}, s: ${clickedPos.s})`);
+        const boardPos = this.board.getPositionAt(clickedPos);
+        if (boardPos) {
+          console.log(`   Player: ${boardPos.player}, StartZone1: ${boardPos.isStartZone1}, StartZone2: ${boardPos.isStartZone2}`);
+        }
+      } else {
+        console.log('🎯 Clicked outside board');
+      }
+      
       if (!selectedPos) {
         if (clickedPos) {
            this.handlePieceSelection(clickedPos)

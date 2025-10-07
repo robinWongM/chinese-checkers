@@ -64,18 +64,22 @@ export class GameLogic {
     const moves: HexPosition[] = [];
     const visited = new Set<string>();
     
+    console.log(`\n🔍 Calculating valid moves from (${from.q}, ${from.r}, ${from.s})`);
+    
     // Adjacent moves (1 step)
     const neighbors = HexUtils.getNeighbors(from);
     neighbors.forEach(neighbor => {
       const pos = this.gameState.board.get(HexUtils.toKey(neighbor));
       if (pos && pos.player === Player.NONE) {
         moves.push(neighbor);
+        console.log(`  ✓ Adjacent move: (${neighbor.q}, ${neighbor.r}, ${neighbor.s})`);
       }
     });
 
     // Jump moves (can be chained)
     this.findJumpMoves(from, moves, visited, from);
 
+    console.log(`📊 Total moves found: ${moves.length}`);
     return moves;
   }
 
@@ -119,6 +123,7 @@ export class GameLogic {
             !visited.has(jumpKey)) {
           
           if (!moves.some(m => HexUtils.equals(m, jumpPos))) {
+            console.log(`  🦘 Type 1 Jump: (${from.q}, ${from.r}) → over (${neighbor.q}, ${neighbor.r}) → land (${jumpPos.q}, ${jumpPos.r})`);
             moves.push(jumpPos);
           }
 
@@ -157,6 +162,8 @@ export class GameLogic {
               s: nextPos.s + (nextPos.s - from.s)
             };
             
+            console.log(`  🚀 Type 2 Jump attempt: from (${from.q}, ${from.r}) → empty×${distance} → over piece (${nextPos.q}, ${nextPos.r}) → land (${jumpPos.q}, ${jumpPos.r})`);
+            
             const jumpKey = HexUtils.toKey(jumpPos);
             const jumpBoardPos = this.gameState.board.get(jumpKey);
             
@@ -186,11 +193,18 @@ export class GameLogic {
               
               if (pathClear) {
                 if (!moves.some(m => HexUtils.equals(m, jumpPos))) {
+                  console.log(`    ✅ Type 2 Jump added: (${jumpPos.q}, ${jumpPos.r})`);
                   moves.push(jumpPos);
                 }
                 
                 this.findJumpMoves(jumpPos, moves, visited, originalStart);
+              } else {
+                console.log(`    ❌ Path not clear after jump`);
               }
+            } else {
+              if (!jumpBoardPos) console.log(`    ❌ Jump position not on board`);
+              else if (jumpBoardPos.player !== Player.NONE) console.log(`    ❌ Jump position occupied`);
+              else if (visited.has(jumpKey)) console.log(`    ❌ Jump position already visited`);
             }
             break;
           }

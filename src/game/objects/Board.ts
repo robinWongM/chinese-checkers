@@ -170,7 +170,7 @@ export class Board {
     const pixel = this.getPixelPosition(pos);
     const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.selectedHighlightSizeRatio, THEME.selectedPieceHighlightColor, 0.3);
     highlight.setStrokeStyle(4, THEME.selectedPieceHighlightColor, 1);
-    highlight.setDepth(150); // 选中高亮在棋子上方
+    highlight.setDepth(50); // 选中高亮在棋子下方
     this.highlightSprites.push(highlight);
   }
 
