@@ -141,8 +141,6 @@ export class Board {
   }
 
   public highlightPositions(positions: HexPosition[], onClickCallback?: (pos: HexPosition) => void): void {
-    this.clearHighlights();
-    
     positions.forEach((pos) => {
       const pixel = this.getPixelPosition(pos);
       const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.validMoveSizeRatio, THEME.validMoveHighlightColor, 0.4);
@@ -170,9 +168,9 @@ export class Board {
 
   public highlightSelected(pos: HexPosition): void {
     const pixel = this.getPixelPosition(pos);
-    const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.selectedHighlightSizeRatio, THEME.selectedPieceHighlightColor, 0.2);
+    const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.selectedHighlightSizeRatio, THEME.selectedPieceHighlightColor, 0.3);
     highlight.setStrokeStyle(4, THEME.selectedPieceHighlightColor, 1);
-    highlight.setDepth(50); // 选中高亮在底层
+    highlight.setDepth(150); // 选中高亮在棋子上方
     this.highlightSprites.push(highlight);
   }
 
