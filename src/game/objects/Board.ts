@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { HexPosition, BoardPosition } from '../types';
 import { Player } from '../types';
 import { HexUtils } from './Position';
+import { THEME } from '../config/theme';
 
 export class Board {
   private scene: Phaser.Scene;
@@ -32,18 +33,18 @@ export class Board {
       const pixel = this.getPixelPosition(pos);
       
       // Color-code different zones for visibility
-      let fillColor = 0x374151; // Default gray
+      let fillColor = THEME.defaultHexColor;
       if (pos.isStartZone1 && pos.player === Player.PLAYER1) {
-        fillColor = 0x1e3a8a; // Dark blue for P1 start
+        fillColor = THEME.player1StartColor;
       } else if (pos.isStartZone2 && pos.player === Player.PLAYER2) {
-        fillColor = 0x7f1d1d; // Dark red for P2 start
+        fillColor = THEME.player2StartColor;
       } else if (pos.isGoalZone1 && pos.player === Player.NONE) {
-        fillColor = 0x1e3a8a; // Dark blue for P1 goal
+        fillColor = THEME.player1GoalColor;
       } else if (pos.isGoalZone2 && pos.player === Player.NONE) {
-        fillColor = 0x7f1d1d; // Dark red for P2 goal
+        fillColor = THEME.player2GoalColor;
       }
       
-      this.drawHexagon(pixel.x, pixel.y, this.hexSize, fillColor, 0x6b7280);
+      this.drawHexagon(pixel.x, pixel.y, this.hexSize, fillColor, THEME.hexStrokeColor);
     });
 
     this.renderPieces();
@@ -78,10 +79,10 @@ export class Board {
     this.board.forEach((pos, key) => {
       if (pos.player !== Player.NONE) {
         const pixel = this.getPixelPosition(pos);
-        const color = pos.player === Player.PLAYER1 ? 0x3B82F6 : 0xEF4444;
+        const color = pos.player === Player.PLAYER1 ? THEME.player1Color : THEME.player2Color;
         
-        const piece = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * 0.4, color);
-        piece.setStrokeStyle(3, 0xffffff, 0.8);
+        const piece = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.pieceSizeRatio, color);
+        piece.setStrokeStyle(3, THEME.pieceStrokeColor, 0.8);
         piece.setDepth(100); // 棋子在中层
         piece.setInteractive({ useHandCursor: true });
         piece.setData('position', pos);
@@ -120,7 +121,7 @@ export class Board {
         targets: piece,
         x: toPixel.x,
         y: toPixel.y,
-        duration: 300,
+        duration: THEME.pieceMoveDuration,
         ease: 'Power2',
         onComplete: () => {
           this.pieceSprites.delete(fromKey);
@@ -136,8 +137,8 @@ export class Board {
     
     positions.forEach((pos) => {
       const pixel = this.getPixelPosition(pos);
-      const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * 0.3, 0x10B981, 0.4);
-      highlight.setStrokeStyle(3, 0x10B981, 0.8);
+      const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.validMoveSizeRatio, THEME.validMoveHighlightColor, 0.4);
+      highlight.setStrokeStyle(3, THEME.validMoveHighlightColor, 0.8);
       highlight.setDepth(1000);
       highlight.setInteractive({ useHandCursor: true });
       highlight.setData('position', pos);
@@ -161,8 +162,8 @@ export class Board {
 
   public highlightSelected(pos: HexPosition): void {
     const pixel = this.getPixelPosition(pos);
-    const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * 0.5, 0xFBBF24, 0.2);
-    highlight.setStrokeStyle(4, 0xFBBF24, 1);
+    const highlight = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.selectedHighlightSizeRatio, THEME.selectedPieceHighlightColor, 0.2);
+    highlight.setStrokeStyle(4, THEME.selectedPieceHighlightColor, 1);
     highlight.setDepth(50); // 选中高亮在底层
     this.highlightSprites.push(highlight);
   }

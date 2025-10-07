@@ -51,46 +51,43 @@ export class HexUtils {
       });
     };
 
-    // 简化版两人对战中国跳棋
-    // 中心菱形区域（通道）- 使用 axial coordinates
+    // Simplified two-player Chinese Checkers board
+    // Central diamond area - using axial coordinates
     for (let q = -4; q <= 4; q++) {
       for (let r = -4; r <= 4; r++) {
         const s = -q - r;
-        // 限制在菱形范围内
         if (Math.abs(q) <= 4 && Math.abs(r) <= 4 && Math.abs(s) <= 4) {
           add(q, r, Player.NONE, false, false, false, false);
         }
       }
     }
 
-    // 左下三角形 (玩家1，蓝色) - 与红色镜像对称
-    // 从外向内：1个，2个，3个，4个（金字塔形状）
-    add(-4, 8, Player.PLAYER1, true, false, false, true);  // 第1行，最外层
+    // Player 1's triangle (Blue) - bottom-left
+    add(-4, 8, Player.PLAYER1, true, false, false, true);
     
-    add(-4, 7, Player.PLAYER1, true, false, false, true);  // 第2行
+    add(-4, 7, Player.PLAYER1, true, false, false, true);
     add(-3, 7, Player.PLAYER1, true, false, false, true);
     
-    add(-4, 6, Player.PLAYER1, true, false, false, true);  // 第3行
+    add(-4, 6, Player.PLAYER1, true, false, false, true);
     add(-3, 6, Player.PLAYER1, true, false, false, true);
     add(-2, 6, Player.PLAYER1, true, false, false, true);
     
-    add(-4, 5, Player.PLAYER1, true, false, false, true);  // 第4行（最靠近中心）
+    add(-4, 5, Player.PLAYER1, true, false, false, true);
     add(-3, 5, Player.PLAYER1, true, false, false, true);
     add(-2, 5, Player.PLAYER1, true, false, false, true);
     add(-1, 5, Player.PLAYER1, true, false, false, true);
 
-    // 右下三角形 (玩家2，红色) - 尖角向右下
-    // 从外向内：4个，3个，2个，1个（金字塔形状）
-    add(4, -8, Player.PLAYER2, false, true, true, false);  // 第1行，最外层
+    // Player 2's triangle (Red) - top-right
+    add(4, -8, Player.PLAYER2, false, true, true, false);
     
-    add(4, -7, Player.PLAYER2, false, true, true, false);  // 第2行
+    add(4, -7, Player.PLAYER2, false, true, true, false);
     add(3, -7, Player.PLAYER2, false, true, true, false);
     
-    add(4, -6, Player.PLAYER2, false, true, true, false);  // 第3行
+    add(4, -6, Player.PLAYER2, false, true, true, false);
     add(3, -6, Player.PLAYER2, false, true, true, false);
     add(2, -6, Player.PLAYER2, false, true, true, false);
     
-    add(4, -5, Player.PLAYER2, false, true, true, false);  // 第4行（最靠近中心）
+    add(4, -5, Player.PLAYER2, false, true, true, false);
     add(3, -5, Player.PLAYER2, false, true, true, false);
     add(2, -5, Player.PLAYER2, false, true, true, false);
     add(1, -5, Player.PLAYER2, false, true, true, false);
