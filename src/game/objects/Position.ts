@@ -1,4 +1,4 @@
-import { HexPosition, BoardPosition, Player } from '../types';
+import { HexPosition, BoardPosition, Player, GameConfig } from '../types';
 
 export class HexUtils {
   static toKey(pos: HexPosition): string {
@@ -41,122 +41,85 @@ export class HexUtils {
     return { x, y };
   }
 
-  static createBoard(): Map<string, BoardPosition> {
+  // Define all 6 corners with their positions
+  private static readonly CORNER_POSITIONS: Record<Player, HexPosition[]> = {
+    [Player.NONE]: [],
+    [Player.NORTH]: [
+      { q: 4, r: -8, s: 4 },
+      { q: 4, r: -7, s: 3 }, { q: 3, r: -7, s: 4 },
+      { q: 4, r: -6, s: 2 }, { q: 3, r: -6, s: 3 }, { q: 2, r: -6, s: 4 },
+      { q: 4, r: -5, s: 1 }, { q: 3, r: -5, s: 2 }, { q: 2, r: -5, s: 3 }, { q: 1, r: -5, s: 4 }
+    ],
+    [Player.NORTH_EAST]: [
+      { q: 8, r: -4, s: -4 },
+      { q: 7, r: -4, s: -3 }, { q: 7, r: -3, s: -4 },
+      { q: 6, r: -4, s: -2 }, { q: 6, r: -3, s: -3 }, { q: 6, r: -2, s: -4 },
+      { q: 5, r: -4, s: -1 }, { q: 5, r: -3, s: -2 }, { q: 5, r: -2, s: -3 }, { q: 5, r: -1, s: -4 }
+    ],
+    [Player.SOUTH_EAST]: [
+      { q: 4, r: 4, s: -8 },
+      { q: 4, r: 3, s: -7 }, { q: 3, r: 4, s: -7 },
+      { q: 4, r: 2, s: -6 }, { q: 3, r: 3, s: -6 }, { q: 2, r: 4, s: -6 },
+      { q: 4, r: 1, s: -5 }, { q: 3, r: 2, s: -5 }, { q: 2, r: 3, s: -5 }, { q: 1, r: 4, s: -5 }
+    ],
+    [Player.SOUTH]: [
+      { q: -4, r: 8, s: -4 },
+      { q: -4, r: 7, s: -3 }, { q: -3, r: 7, s: -4 },
+      { q: -4, r: 6, s: -2 }, { q: -3, r: 6, s: -3 }, { q: -2, r: 6, s: -4 },
+      { q: -4, r: 5, s: -1 }, { q: -3, r: 5, s: -2 }, { q: -2, r: 5, s: -3 }, { q: -1, r: 5, s: -4 }
+    ],
+    [Player.SOUTH_WEST]: [
+      { q: -8, r: 4, s: 4 },
+      { q: -7, r: 3, s: 4 }, { q: -7, r: 4, s: 3 },
+      { q: -6, r: 2, s: 4 }, { q: -6, r: 3, s: 3 }, { q: -6, r: 4, s: 2 },
+      { q: -5, r: 1, s: 4 }, { q: -5, r: 2, s: 3 }, { q: -5, r: 3, s: 2 }, { q: -5, r: 4, s: 1 }
+    ],
+    [Player.NORTH_WEST]: [
+      { q: -4, r: -4, s: 8 },
+      { q: -4, r: -3, s: 7 }, { q: -3, r: -4, s: 7 },
+      { q: -4, r: -2, s: 6 }, { q: -3, r: -3, s: 6 }, { q: -2, r: -4, s: 6 },
+      { q: -4, r: -1, s: 5 }, { q: -3, r: -2, s: 5 }, { q: -2, r: -3, s: 5 }, { q: -1, r: -4, s: 5 }
+    ]
+  };
+
+  static createBoard(config: GameConfig): Map<string, BoardPosition> {
     const board = new Map<string, BoardPosition>();
     
-    const add = (q: number, r: number, player: Player, z1: boolean, z2: boolean, g1: boolean, g2: boolean, cornerNE?: boolean, cornerSE?: boolean, cornerSW?: boolean, cornerNW?: boolean) => {
+    const add = (q: number, r: number, player: Player, corner?: Player) => {
       const s = -q - r;
       board.set(HexUtils.toKey({ q, r, s }), {
-        q, r, s, player, isStartZone1: z1, isStartZone2: z2, isGoalZone1: g1, isGoalZone2: g2,
-        isCornerNE: cornerNE, isCornerSE: cornerSE, isCornerSW: cornerSW, isCornerNW: cornerNW
+        q, r, s, player, corner
       });
     };
 
-    // Central hexagonal area - 6-player board layout
+    // Central hexagonal area
     for (let q = -4; q <= 4; q++) {
       for (let r = -4; r <= 4; r++) {
         const s = -q - r;
         if (Math.abs(q) <= 4 && Math.abs(r) <= 4 && Math.abs(s) <= 4) {
-          add(q, r, Player.NONE, false, false, false, false);
+          add(q, r, Player.NONE);
         }
       }
     }
 
-    // Corner NE: North-East (Green) - Start with this one
-    // Row 4 (tip)
-    add(8, -4, Player.NONE, false, false, false, false, true, false, false, false);
-    // Row 3
-    add(7, -4, Player.NONE, false, false, false, false, true, false, false, false);
-    add(7, -3, Player.NONE, false, false, false, false, true, false, false, false);
-    // Row 2
-    add(6, -4, Player.NONE, false, false, false, false, true, false, false, false);
-    add(6, -3, Player.NONE, false, false, false, false, true, false, false, false);
-    add(6, -2, Player.NONE, false, false, false, false, true, false, false, false);
-    // Row 1 (base)
-    add(5, -4, Player.NONE, false, false, false, false, true, false, false, false);
-    add(5, -3, Player.NONE, false, false, false, false, true, false, false, false);
-    add(5, -2, Player.NONE, false, false, false, false, true, false, false, false);
-    add(5, -1, Player.NONE, false, false, false, false, true, false, false, false);
+    // Add all 6 corners with dynamic player assignment
+    const allCorners = [
+      Player.NORTH,
+      Player.NORTH_EAST,
+      Player.SOUTH_EAST,
+      Player.SOUTH,
+      Player.SOUTH_WEST,
+      Player.NORTH_WEST
+    ];
 
-    // Player 2 STARTS HERE - North
-    // Row 4 (tip)
-    add(4, -8, Player.PLAYER2, false, true, true, false);
-    // Row 3
-    add(4, -7, Player.PLAYER2, false, true, true, false);
-    add(3, -7, Player.PLAYER2, false, true, true, false);
-    // Row 2
-    add(4, -6, Player.PLAYER2, false, true, true, false);
-    add(3, -6, Player.PLAYER2, false, true, true, false);
-    add(2, -6, Player.PLAYER2, false, true, true, false);
-    // Row 1 (base)
-    add(4, -5, Player.PLAYER2, false, true, true, false);
-    add(3, -5, Player.PLAYER2, false, true, true, false);
-    add(2, -5, Player.PLAYER2, false, true, true, false);
-    add(1, -5, Player.PLAYER2, false, true, true, false);
-
-    // Corner SE: South-East (Orange)
-    // Row 4 (tip)
-    add(4, 4, Player.NONE, false, false, false, false, false, true, false, false);
-    // Row 3
-    add(4, 3, Player.NONE, false, false, false, false, false, true, false, false);
-    add(3, 4, Player.NONE, false, false, false, false, false, true, false, false);
-    // Row 2
-    add(4, 2, Player.NONE, false, false, false, false, false, true, false, false);
-    add(3, 3, Player.NONE, false, false, false, false, false, true, false, false);
-    add(2, 4, Player.NONE, false, false, false, false, false, true, false, false);
-    // Row 1 (base)
-    add(4, 1, Player.NONE, false, false, false, false, false, true, false, false);
-    add(3, 2, Player.NONE, false, false, false, false, false, true, false, false);
-    add(2, 3, Player.NONE, false, false, false, false, false, true, false, false);
-    add(1, 4, Player.NONE, false, false, false, false, false, true, false, false);
-
-    // Corner SW: South-West (Purple)
-    // Row 4 (tip)
-    add(-8, 4, Player.NONE, false, false, false, false, false, false, true, false);
-    // Row 3
-    add(-7, 3, Player.NONE, false, false, false, false, false, false, true, false);
-    add(-7, 4, Player.NONE, false, false, false, false, false, false, true, false);
-    // Row 2
-    add(-6, 2, Player.NONE, false, false, false, false, false, false, true, false);
-    add(-6, 3, Player.NONE, false, false, false, false, false, false, true, false);
-    add(-6, 4, Player.NONE, false, false, false, false, false, false, true, false);
-    // Row 1 (base)
-    add(-5, 1, Player.NONE, false, false, false, false, false, false, true, false);
-    add(-5, 2, Player.NONE, false, false, false, false, false, false, true, false);
-    add(-5, 3, Player.NONE, false, false, false, false, false, false, true, false);
-    add(-5, 4, Player.NONE, false, false, false, false, false, false, true, false);
-
-    // Player 1 STARTS HERE - South
-    // Row 4 (tip)
-    add(-4, 8, Player.PLAYER1, true, false, false, true);
-    // Row 3
-    add(-4, 7, Player.PLAYER1, true, false, false, true);
-    add(-3, 7, Player.PLAYER1, true, false, false, true);
-    // Row 2
-    add(-4, 6, Player.PLAYER1, true, false, false, true);
-    add(-3, 6, Player.PLAYER1, true, false, false, true);
-    add(-2, 6, Player.PLAYER1, true, false, false, true);
-    // Row 1 (base)
-    add(-4, 5, Player.PLAYER1, true, false, false, true);
-    add(-3, 5, Player.PLAYER1, true, false, false, true);
-    add(-2, 5, Player.PLAYER1, true, false, false, true);
-    add(-1, 5, Player.PLAYER1, true, false, false, true);
-
-    // Corner NW: North-West (Pink)
-    // Row 4 (tip)
-    add(-4, -4, Player.NONE, false, false, false, false, false, false, false, true);
-    // Row 3
-    add(-4, -3, Player.NONE, false, false, false, false, false, false, false, true);
-    add(-3, -4, Player.NONE, false, false, false, false, false, false, false, true);
-    // Row 2
-    add(-4, -2, Player.NONE, false, false, false, false, false, false, false, true);
-    add(-3, -3, Player.NONE, false, false, false, false, false, false, false, true);
-    add(-2, -4, Player.NONE, false, false, false, false, false, false, false, true);
-    // Row 1 (base)
-    add(-4, -1, Player.NONE, false, false, false, false, false, false, false, true);
-    add(-3, -2, Player.NONE, false, false, false, false, false, false, false, true);
-    add(-2, -3, Player.NONE, false, false, false, false, false, false, false, true);
-    add(-1, -4, Player.NONE, false, false, false, false, false, false, false, true);
+    allCorners.forEach(corner => {
+      const positions = this.CORNER_POSITIONS[corner];
+      const assignedPlayer = config.activePlayers.includes(corner) ? corner : Player.NONE;
+      
+      positions.forEach(pos => {
+        add(pos.q, pos.r, assignedPlayer, corner);
+      });
+    });
 
     return board;
   }

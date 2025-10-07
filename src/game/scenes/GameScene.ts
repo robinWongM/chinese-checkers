@@ -3,7 +3,9 @@ import { Board } from '../objects/Board';
 import { GameLogic } from '../objects/GameLogic';
 import { UIManager } from '../managers/UIManager';
 import { InputManager } from '../managers/InputManager';
-import { Player, HexPosition } from '../types';
+import { Player, HexPosition, GameConfig } from '../types';
+import { HexUtils } from '../objects/Position';
+import { DEFAULT_2_PLAYER_CONFIG } from '../config/gameConfig';
 
 const CAMERA_ANGLE = -30;
 const POST_MOVE_DELAY = 350; // ms
@@ -13,6 +15,7 @@ export class GameScene extends Phaser.Scene {
   private gameLogic!: GameLogic;
   private uiManager!: UIManager;
   private inputManager!: InputManager;
+  private gameConfig!: GameConfig;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -21,13 +24,16 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.cameras.main;
 
+    // Use default 2-player configuration (TODO: add game setup UI)
+    this.gameConfig = DEFAULT_2_PLAYER_CONFIG;
+
     // Reduced hex size to accommodate 6-corner layout (board extends to ±8)
-    const hexSize = Math.min(width, height) / 32;
+    const hexSize = Math.min(width, height) / 24;
     const centerX = width / 2;
     const centerY = height / 2;
 
-    this.board = new Board(this, centerX, centerY, hexSize);
-    this.gameLogic = new GameLogic(this.board.getBoard());
+    this.board = new Board(this, centerX, centerY, hexSize, this.gameConfig);
+    this.gameLogic = new GameLogic(this.board.getBoard(), this.gameConfig);
     this.uiManager = new UIManager(
       () => this.restartGame(),
       () => this.exportGameState(),
@@ -62,7 +68,7 @@ export class GameScene extends Phaser.Scene {
         console.log(`🎯 Clicked position: (q: ${clickedPos.q}, r: ${clickedPos.r}, s: ${clickedPos.s})`);
         const boardPos = this.board.getPositionAt(clickedPos);
         if (boardPos) {
-          console.log(`   Player: ${boardPos.player}, StartZone1: ${boardPos.isStartZone1}, StartZone2: ${boardPos.isStartZone2}`);
+          console.log(`   Player: ${boardPos.player}, Corner: ${boardPos.corner}`);
         }
       } else {
         console.log('🎯 Clicked outside board');

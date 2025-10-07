@@ -1,4 +1,4 @@
-import { Player } from '../types';
+import { Player, PlayerInfo } from '../types';
 
 export class UIManager {
   private playerTurnElement: HTMLElement;
@@ -33,15 +33,30 @@ export class UIManager {
   }
 
   public updateTurn(currentPlayer: Player): void {
-    const playerName = currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2';
-    const playerColor = currentPlayer === Player.PLAYER1 ? 'text-blue-400' : 'text-red-400';
+    const playerName = PlayerInfo.getName(currentPlayer);
+    const colorCode = PlayerInfo.getColor(currentPlayer);
+    const playerColor = this.getColorClass(colorCode);
     
     this.playerTurnElement.innerHTML = `<span class="${playerColor}">${playerName}'s Turn</span>`;
   }
+  
+  private getColorClass(colorCode: number): string {
+    // Map hex colors to Tailwind classes
+    switch (colorCode) {
+      case 0xEF4444: return 'text-red-400';      // North
+      case 0x10B981: return 'text-green-400';    // North-East
+      case 0xF59E0B: return 'text-orange-400';   // South-East
+      case 0x3B82F6: return 'text-blue-400';     // South
+      case 0x8B5CF6: return 'text-purple-400';   // South-West
+      case 0xEC4899: return 'text-pink-400';     // North-West
+      default: return 'text-gray-400';
+    }
+  }
 
   public showWinMessage(winner: Player): void {
-    const winnerName = winner === Player.PLAYER1 ? 'Player 1' : 'Player 2';
-    const winnerColor = winner === Player.PLAYER1 ? 'text-blue-400' : 'text-red-400';
+    const winnerName = PlayerInfo.getName(winner);
+    const colorCode = PlayerInfo.getColor(winner);
+    const winnerColor = this.getColorClass(colorCode);
       
     this.winnerTextElement.innerHTML = `<span class="${winnerColor}">${winnerName} Wins!</span>`;
     this.winMessageElement.classList.remove('hidden');

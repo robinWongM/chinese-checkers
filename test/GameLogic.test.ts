@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameLogic } from '../src/game/objects/GameLogic';
-import { Player, type BoardPosition, type HexPosition } from '../src/game/types';
+import { Player, type BoardPosition, type HexPosition, type GameConfig } from '../src/game/types';
 import { HexUtils } from '../src/game/objects/Position';
+
+// Create a test config for 2 players
+const TEST_CONFIG: GameConfig = {
+  playerCount: 2,
+  activePlayers: [Player.SOUTH, Player.NORTH]
+};
 
 // Helper to create a mock board
 const createMockBoard = (pieces: {pos: HexPosition, player: Player}[]): Map<string, BoardPosition> => {
@@ -12,7 +18,10 @@ const createMockBoard = (pieces: {pos: HexPosition, player: Player}[]): Map<stri
       const s = -q - r;
       if (Math.abs(q) <= 10 && Math.abs(r) <= 10 && Math.abs(s) <= 10) {
         const pos = { q, r, s };
-        board.set(HexUtils.toKey(pos), { ...pos, player: Player.NONE });
+        board.set(HexUtils.toKey(pos), { 
+          ...pos, 
+          player: Player.NONE
+        });
       }
     }
   }
@@ -34,15 +43,15 @@ describe('GameLogic', () => {
   beforeEach(() => {
     // A simple setup for most tests
     const pieces = [
-      { pos: { q: 0, r: 0, s: 0 }, player: Player.PLAYER1 },
-      { pos: { q: 1, r: 0, s: -1 }, player: Player.PLAYER2 },
+      { pos: { q: 0, r: 0, s: 0 }, player: Player.SOUTH },
+      { pos: { q: 1, r: 0, s: -1 }, player: Player.NORTH },
     ];
     board = createMockBoard(pieces);
-    gameLogic = new GameLogic(board);
+    gameLogic = new GameLogic(board, TEST_CONFIG);
   });
 
-  it('should initialize with player 1 as the current player', () => {
-    expect(gameLogic.getState().currentPlayer).toBe(Player.PLAYER1);
+  it('should initialize with south player as the current player', () => {
+    expect(gameLogic.getState().currentPlayer).toBe(Player.SOUTH);
   });
 
   it('should allow selecting a piece of the current player', () => {
@@ -69,10 +78,10 @@ describe('GameLogic', () => {
   describe('Movements', () => {
     it('should calculate valid adjacent moves when no jumps are possible', () => {
       const pieces = [
-        { pos: { q: 0, r: 0, s: 0 }, player: Player.PLAYER1 },
+        { pos: { q: 0, r: 0, s: 0 }, player: Player.SOUTH },
       ];
       board = createMockBoard(pieces);
-      gameLogic = new GameLogic(board);
+      gameLogic = new GameLogic(board, TEST_CONFIG);
       
       const pos = { q: 0, r: 0, s: 0 };
       gameLogic.selectPiece(pos);
@@ -114,18 +123,18 @@ describe('GameLogic', () => {
       expect(result).toBe(true);
       const state = gameLogic.getState();
       expect(state.board.get(HexUtils.toKey(fromPos))?.player).toBe(Player.NONE);
-      expect(state.board.get(HexUtils.toKey(toPos))?.player).toBe(Player.PLAYER1);
-      expect(state.currentPlayer).toBe(Player.PLAYER2);
+      expect(state.board.get(HexUtils.toKey(toPos))?.player).toBe(Player.SOUTH);
+      expect(state.currentPlayer).toBe(Player.NORTH);
       expect(state.selectedPosition).toBeNull();
     });
 
     it('should calculate valid jump moves', () => {
       const pieces = [
-        { pos: { q: 0, r: 0, s: 0 }, player: Player.PLAYER1 },
-        { pos: { q: 0, r: 1, s: -1 }, player: Player.PLAYER2 }, // Piece to jump over
+        { pos: { q: 0, r: 0, s: 0 }, player: Player.SOUTH },
+        { pos: { q: 0, r: 1, s: -1 }, player: Player.NORTH }, // Piece to jump over
       ];
       board = createMockBoard(pieces);
-      gameLogic = new GameLogic(board);
+      gameLogic = new GameLogic(board, TEST_CONFIG);
 
       gameLogic.selectPiece({ q: 0, r: 0, s: 0 });
       const validMoves = gameLogic.getState().validMoves;
@@ -136,11 +145,11 @@ describe('GameLogic', () => {
 
     it('should perform a valid jump move', () => {
       const pieces = [
-        { pos: { q: 0, r: 0, s: 0 }, player: Player.PLAYER1 },
-        { pos: { q: 0, r: 1, s: -1 }, player: Player.PLAYER2 },
+        { pos: { q: 0, r: 0, s: 0 }, player: Player.SOUTH },
+        { pos: { q: 0, r: 1, s: -1 }, player: Player.NORTH },
       ];
       board = createMockBoard(pieces);
-      gameLogic = new GameLogic(board);
+      gameLogic = new GameLogic(board, TEST_CONFIG);
 
       const fromPos = { q: 0, r: 0, s: 0 };
       const toPos = { q: 0, r: 2, s: -2 };
@@ -151,19 +160,19 @@ describe('GameLogic', () => {
       expect(result).toBe(true);
       const state = gameLogic.getState();
       expect(state.board.get(HexUtils.toKey(fromPos))?.player).toBe(Player.NONE);
-      expect(state.board.get(HexUtils.toKey(toPos))?.player).toBe(Player.PLAYER1);
-      expect(state.board.get(HexUtils.toKey({ q: 0, r: 1, s: -1 }))?.player).toBe(Player.PLAYER2); // Make sure jumped piece is still there
-      expect(state.currentPlayer).toBe(Player.PLAYER2);
+      expect(state.board.get(HexUtils.toKey(toPos))?.player).toBe(Player.SOUTH);
+      expect(state.board.get(HexUtils.toKey({ q: 0, r: 1, s: -1 }))?.player).toBe(Player.NORTH); // Make sure jumped piece is still there
+      expect(state.currentPlayer).toBe(Player.NORTH);
     });
 
     it('should calculate chained jump moves', () => {
-       const pieces = [
-        { pos: { q: 0, r: 0, s: 0 }, player: Player.PLAYER1 },
-        { pos: { q: 1, r: 0, s: -1 }, player: Player.PLAYER2 },
-        { pos: { q: 3, r: 0, s: -3 }, player: Player.PLAYER2 },
+      const pieces = [
+        { pos: { q: 0, r: 0, s: 0 }, player: Player.SOUTH },
+        { pos: { q: 1, r: 0, s: -1 }, player: Player.NORTH },
+        { pos: { q: 3, r: 0, s: -3 }, player: Player.NORTH },
       ];
       board = createMockBoard(pieces);
-      gameLogic = new GameLogic(board);
+      gameLogic = new GameLogic(board, TEST_CONFIG);
 
       gameLogic.selectPiece({ q: 0, r: 0, s: 0 });
       const validMoves = gameLogic.getState().validMoves;
@@ -184,33 +193,32 @@ describe('GameLogic', () => {
     });
     
     it('should declare a winner when a player moves all pieces to the goal zone', () => {
-      const player1Pieces = [
-        { pos: { q: 0, r: 4, s: -4 }, player: Player.PLAYER1 },
-        { pos: { q: 1, r: 3, s: -4 }, player: Player.PLAYER1 },
-        { pos: { q: -1, r: 4, s: -3 }, player: Player.PLAYER1 },
+      const southPieces = [
+        { pos: { q: 0, r: 4, s: -4 }, player: Player.SOUTH },
+        { pos: { q: 1, r: 3, s: -4 }, player: Player.SOUTH },
+        { pos: { q: -1, r: 4, s: -3 }, player: Player.SOUTH },
       ];
       
-      board = createMockBoard(player1Pieces);
+      board = createMockBoard(southPieces);
       
-      // Manually set goal zones for these positions
-      player1Pieces.forEach(p => {
-        board.get(HexUtils.toKey(p.pos))!.isGoalZone2 = true;
+      // Mark these positions as NORTH corner (goal for SOUTH player)
+      southPieces.forEach(p => {
+        board.get(HexUtils.toKey(p.pos))!.corner = Player.NORTH;
       });
       
-      gameLogic = new GameLogic(board);
-      (gameLogic as any).gameState.currentPlayer = Player.PLAYER1;
+      gameLogic = new GameLogic(board, TEST_CONFIG);
+      (gameLogic as any).gameState.currentPlayer = Player.SOUTH;
       
       // Mock total pieces to 3 for this test
-      const originalCheckWin = (gameLogic as any).checkWin.bind(gameLogic);
       (gameLogic as any).checkWin = () => {
         const player = gameLogic.getState().currentPlayer;
-        const goalZoneKey = player === Player.PLAYER1 ? 'isGoalZone2' : 'isGoalZone1';
+        const goalCorner = Player.NORTH; // Opposite of SOUTH
         let piecesInGoal = 0;
         let totalPieces = 0;
         gameLogic.getState().board.forEach(pos => {
           if (pos.player === player) {
             totalPieces++;
-            if (pos[goalZoneKey as keyof BoardPosition]) {
+            if (pos.corner === goalCorner) {
               piecesInGoal++;
             }
           }

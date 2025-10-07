@@ -1,13 +1,15 @@
-import type { HexPosition, BoardPosition, GameState } from '../types';
-import { Player } from '../types';
+import type { HexPosition, BoardPosition, GameState, GameConfig } from '../types';
+import { Player, PlayerInfo } from '../types';
 import { HexUtils } from './Position';
 
 export class GameLogic {
   private gameState: GameState;
 
-  constructor(board: Map<string, BoardPosition>) {
+  constructor(board: Map<string, BoardPosition>, config: GameConfig) {
     this.gameState = {
-      currentPlayer: Player.PLAYER1,
+      config,
+      currentPlayer: config.activePlayers[0],
+      currentPlayerIndex: 0,
       board,
       selectedPosition: null,
       validMoves: [],
@@ -51,8 +53,10 @@ export class GameLogic {
     if (this.checkWin()) {
       this.gameState.winner = this.gameState.currentPlayer;
     } else {
-      this.gameState.currentPlayer = 
-        this.gameState.currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
+      // Move to next player
+      this.gameState.currentPlayerIndex = 
+        (this.gameState.currentPlayerIndex + 1) % this.gameState.config.activePlayers.length;
+      this.gameState.currentPlayer = this.gameState.config.activePlayers[this.gameState.currentPlayerIndex];
     }
 
     this.gameState.selectedPosition = null;
@@ -218,7 +222,7 @@ export class GameLogic {
 
   private checkWin(): boolean {
     const player = this.gameState.currentPlayer;
-    const goalZoneKey = player === Player.PLAYER1 ? 'isGoalZone1' : 'isGoalZone2';
+    const goalCorner = PlayerInfo.getOppositeCorner(player);
     
     let piecesInGoal = 0;
     let totalPieces = 0;
@@ -226,19 +230,14 @@ export class GameLogic {
     this.gameState.board.forEach(pos => {
       if (pos.player === player) {
         totalPieces++;
-        if (player === Player.PLAYER1) {
-          if (pos.isGoalZone1) {
-            piecesInGoal++;
-          }
-        } else { // Player.PLAYER2
-          if (pos.isGoalZone2) {
-            piecesInGoal++;
-          }
+        // Check if this piece is in the goal corner (opposite corner)
+        if (pos.corner === goalCorner) {
+          piecesInGoal++;
         }
       }
     });
 
-    // All 10 pieces must be in the goal zone to win.
+    // All 10 pieces must be in the goal zone to win
     return totalPieces === 10 && piecesInGoal === 10;
   }
 
@@ -251,9 +250,11 @@ export class GameLogic {
     return this.gameState;
   }
 
-  public reset(board: Map<string, BoardPosition>): void {
+  public reset(board: Map<string, BoardPosition>, config: GameConfig): void {
     this.gameState = {
-      currentPlayer: Player.PLAYER1,
+      config,
+      currentPlayer: config.activePlayers[0],
+      currentPlayerIndex: 0,
       board,
       selectedPosition: null,
       validMoves: [],

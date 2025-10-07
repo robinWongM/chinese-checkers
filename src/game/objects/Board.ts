@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import type { HexPosition, BoardPosition } from '../types';
-import { Player } from '../types';
+import type { HexPosition, BoardPosition, GameConfig } from '../types';
+import { Player, PlayerInfo } from '../types';
 import { HexUtils } from './Position';
 import { THEME } from '../config/theme';
 
@@ -14,12 +14,12 @@ export class Board {
   private centerX: number;
   private centerY: number;
 
-  constructor(scene: Phaser.Scene, centerX: number, centerY: number, hexSize: number) {
+  constructor(scene: Phaser.Scene, centerX: number, centerY: number, hexSize: number, config: GameConfig) {
     this.scene = scene;
     this.centerX = centerX;
     this.centerY = centerY;
     this.hexSize = hexSize;
-    this.board = HexUtils.createBoard();
+    this.board = HexUtils.createBoard(config);
     this.graphics = scene.add.graphics();
     this.pieceSprites = new Map();
 
@@ -32,24 +32,16 @@ export class Board {
     this.board.forEach((pos) => {
       const pixel = this.getPixelPosition(pos);
       
-      // Color-code different zones for visibility
+      // Color-code corner zones
       let fillColor = THEME.defaultHexColor;
-      if (pos.isStartZone1 && pos.player === Player.PLAYER1) {
-        fillColor = THEME.player1StartColor;
-      } else if (pos.isStartZone2 && pos.player === Player.PLAYER2) {
-        fillColor = THEME.player2StartColor;
-      } else if (pos.isGoalZone1 && pos.player === Player.NONE) {
-        fillColor = THEME.player1GoalColor;
-      } else if (pos.isGoalZone2 && pos.player === Player.NONE) {
-        fillColor = THEME.player2GoalColor;
-      } else if (pos.isCornerNE) {
-        fillColor = THEME.cornerNEColor;
-      } else if (pos.isCornerSE) {
-        fillColor = THEME.cornerSEColor;
-      } else if (pos.isCornerSW) {
-        fillColor = THEME.cornerSWColor;
-      } else if (pos.isCornerNW) {
-        fillColor = THEME.cornerNWColor;
+      if (pos.corner && pos.corner !== Player.NONE) {
+        // Slightly highlight the corner
+        const cornerColor = PlayerInfo.getColor(pos.corner);
+        fillColor = cornerColor;
+        // If a player occupies this corner, make it darker/lighter
+        if (pos.player === pos.corner) {
+          // Occupied by owner - make it brighter (reduce opacity will be set later)
+        }
       }
       
       this.drawHexagon(pixel.x, pixel.y, this.hexSize, fillColor, THEME.hexStrokeColor);
@@ -69,7 +61,7 @@ export class Board {
     }
 
     this.graphics.fillStyle(fillColor, 0.3);
-    this.graphics.lineStyle(2, strokeColor, 1);
+    this.graphics.lineStyle(4, strokeColor, 1);
     this.graphics.beginPath();
     this.graphics.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < 6; i++) {
@@ -87,7 +79,7 @@ export class Board {
     this.board.forEach((pos, key) => {
       if (pos.player !== Player.NONE) {
         const pixel = this.getPixelPosition(pos);
-        const color = pos.player === Player.PLAYER1 ? THEME.player1Color : THEME.player2Color;
+        const color = PlayerInfo.getColor(pos.player);
         
         const piece = this.scene.add.circle(pixel.x, pixel.y, this.hexSize * THEME.pieceSizeRatio, color);
         piece.setStrokeStyle(3, THEME.pieceStrokeColor, 0.8);
