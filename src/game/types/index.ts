@@ -19,9 +19,19 @@ export interface BoardPosition extends HexPosition {
   corner?: Player; // Which corner this position belongs to (if any)
 }
 
+export type AIType = 'mcts' | 'greedy';
+
+export interface PlayerConfig {
+  player: Player;
+  isAI: boolean;
+  aiType?: AIType;
+  aiDifficulty?: 'easy' | 'medium' | 'hard';
+}
+
 export interface GameConfig {
   playerCount: number; // 2-6
   activePlayers: Player[]; // Which corners are active, in turn order
+  playerConfigs?: PlayerConfig[]; // Optional AI configuration for each player
 }
 
 export interface GameState {

@@ -3,19 +3,22 @@ import { Board } from '../objects/Board';
 import { GameLogic } from '../objects/GameLogic';
 import { UIManager } from '../managers/UIManager';
 import { InputManager } from '../managers/InputManager';
+import { AIManager } from '../managers/AIManager';
 import { Player, HexPosition, GameConfig } from '../types';
-import { HexUtils } from '../objects/Position';
-import { DEFAULT_2_PLAYER_CONFIG } from '../config/gameConfig';
+import { PLAYER_VS_AI_CONFIG } from '../config/gameConfig';
 
 const CAMERA_ANGLE = -30;
 const POST_MOVE_DELAY = 350; // ms
+const AI_THINKING_DELAY = 500; // ms - delay before AI makes a move
 
 export class GameScene extends Phaser.Scene {
   private board!: Board;
   private gameLogic!: GameLogic;
   private uiManager!: UIManager;
   private inputManager!: InputManager;
+  private aiManager!: AIManager;
   private gameConfig!: GameConfig;
+  private isAIThinking: boolean = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -24,8 +27,8 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.cameras.main;
 
-    // Use default 2-player configuration (TODO: add game setup UI)
-    this.gameConfig = DEFAULT_2_PLAYER_CONFIG;
+    // Use AI configuration for Player vs AI mode
+    this.gameConfig = PLAYER_VS_AI_CONFIG;
 
     // Reduced hex size to accommodate 6-corner layout (board extends to ±8)
     const hexSize = Math.min(width, height) / 24;
@@ -34,6 +37,7 @@ export class GameScene extends Phaser.Scene {
 
     this.board = new Board(this, centerX, centerY, hexSize, this.gameConfig);
     this.gameLogic = new GameLogic(this.board.getBoard(), this.gameConfig);
+    this.aiManager = new AIManager(this.gameConfig);
     this.uiManager = new UIManager(
       () => this.restartGame(),
       () => this.exportGameState(),
@@ -48,6 +52,9 @@ export class GameScene extends Phaser.Scene {
     
     // Rotate the camera for a better isometric-like view
     this.cameras.main.setAngle(CAMERA_ANGLE);
+    
+    // Check if AI should make the first move
+    this.checkAITurn();
   }
 
   private setupInputHandlers(): void {
@@ -108,6 +115,16 @@ export class GameScene extends Phaser.Scene {
   }
   
   private handlePieceSelection(pos: HexPosition): void {
+    // Don't allow selection if AI is thinking
+    if (this.isAIThinking) {
+      return;
+    }
+    
+    // Don't allow selection if current player is AI
+    if (this.aiManager.isAIPlayer(this.gameLogic.getState().currentPlayer)) {
+      return;
+    }
+    
     if (this.gameLogic.selectPiece(pos)) {
       this.board.clearHighlights();
       this.board.highlightSelected(pos);
@@ -143,6 +160,9 @@ export class GameScene extends Phaser.Scene {
         this.updatePieceInteractivity();
         this.updateUI();
         this.checkWin();
+        
+        // Check if AI should move next
+        this.checkAITurn();
       });
     }
   }
@@ -158,6 +178,62 @@ export class GameScene extends Phaser.Scene {
       
       if (boardPos && boardPos.player === currentPlayer) {
         piece.on('pointerdown', () => this.handlePieceSelection(pos));
+      }
+    });
+  }
+
+  /**
+   * Check if it's AI's turn and make AI move if so
+   */
+  private checkAITurn(): void {
+    const currentPlayer = this.gameLogic.getState().currentPlayer;
+    
+    if (this.aiManager.isAIPlayer(currentPlayer) && !this.isAIThinking && !this.gameLogic.getState().winner) {
+      this.makeAIMove();
+    }
+  }
+
+  /**
+   * Make AI move with a delay for better UX
+   */
+  private makeAIMove(): void {
+    this.isAIThinking = true;
+    const currentPlayer = this.gameLogic.getState().currentPlayer;
+    
+    console.log(`🤖 AI Player ${currentPlayer} is thinking...`);
+    
+    this.time.delayedCall(AI_THINKING_DELAY, () => {
+      const move = this.aiManager.getAIMove(currentPlayer, this.gameLogic.getState().board);
+      
+      if (move) {
+        console.log(`🤖 AI moves from (${move.from.q},${move.from.r}) to (${move.to.q},${move.to.r})`);
+        
+        // Select the piece
+        this.gameLogic.selectPiece(move.from);
+        
+        // Perform the visual move
+        this.board.movePiece(move.from, move.to);
+        
+        // Update game state
+        const moveSuccess = this.gameLogic.movePiece(move.to);
+        
+        if (moveSuccess) {
+          this.time.delayedCall(POST_MOVE_DELAY, () => {
+            this.isAIThinking = false;
+            this.updatePieceInteractivity();
+            this.updateUI();
+            this.checkWin();
+            
+            // Check if next player is also AI (for AI vs AI mode)
+            this.checkAITurn();
+          });
+        } else {
+          this.isAIThinking = false;
+          console.error('❌ AI move failed');
+        }
+      } else {
+        this.isAIThinking = false;
+        console.error('❌ AI could not find a valid move');
       }
     });
   }

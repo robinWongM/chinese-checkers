@@ -15,7 +15,7 @@ export class HexUtils {
   }
 
   static distance(a: HexPosition, b: HexPosition): number {
-    return (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + Math.abs(a.s - b.s)) / 2;
+    return Math.max(Math.abs(a.q - b.q), Math.abs(a.r - b.r), Math.abs(a.s - b.s));
   }
 
   static getNeighbors(pos: HexPosition): HexPosition[] {
