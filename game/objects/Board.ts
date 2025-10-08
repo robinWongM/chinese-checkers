@@ -34,7 +34,7 @@ export class Board {
       
       // Color-code corner zones
       let fillColor = THEME.defaultHexColor;
-      if (pos.corner && pos.corner !== Player.NONE) {
+      if (typeof pos.corner !== 'undefined' && pos.corner !== Player.NONE) {
         // Slightly highlight the corner
         const cornerColor = PlayerInfo.getColor(pos.corner);
         fillColor = cornerColor;
@@ -63,9 +63,17 @@ export class Board {
     this.graphics.fillStyle(fillColor, 0.3);
     this.graphics.lineStyle(4, strokeColor, 1);
     this.graphics.beginPath();
-    this.graphics.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < 6; i++) {
-      this.graphics.lineTo(points[i].x, points[i].y);
+    const firstPoint = points[0];
+    if (!firstPoint) {
+      return;
+    }
+    this.graphics.moveTo(firstPoint.x, firstPoint.y);
+    for (let i = 1; i < points.length; i++) {
+      const point = points[i];
+      if (!point) {
+        continue;
+      }
+      this.graphics.lineTo(point.x, point.y);
     }
     this.graphics.closePath();
     this.graphics.strokePath();
@@ -196,6 +204,14 @@ export class Board {
     this.board = newBoard;
     
     // 重新渲染整个棋盘
+    this.render();
+  }
+
+  public resize(centerX: number, centerY: number, hexSize: number): void {
+    this.centerX = centerX;
+    this.centerY = centerY;
+    this.hexSize = hexSize;
+    this.clearHighlights();
     this.render();
   }
 }

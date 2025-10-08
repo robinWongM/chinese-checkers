@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GameLogic } from '../src/game/objects/GameLogic';
-import { Player, type BoardPosition, type HexPosition, type GameConfig } from '../src/game/types';
-import { HexUtils } from '../src/game/objects/Position';
+import { GameLogic } from '../game/objects/GameLogic';
+import { Player, type BoardPosition, type HexPosition, type GameConfig } from '../game/types';
+import { HexUtils } from '../game/objects/Position';
 
 // Create a test config for 2 players
 const TEST_CONFIG: GameConfig = {

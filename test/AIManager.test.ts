@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AIManager } from '../src/game/managers/AIManager';
-import { Player, BoardPosition, GameConfig } from '../src/game/types';
-import { HexUtils } from '../src/game/objects/Position';
+import { AIManager } from '../game/managers/AIManager';
+import { Player } from '../game/types';
+import type { BoardPosition, GameConfig } from '../game/types';
+import { HexUtils } from '../game/objects/Position';
+import { evaluateForwardProgress, getAllPossibleMoves } from '../game/ai/MoveUtils';
 
 // Skip slow tests in CI by setting a global flag
 const SKIP_SLOW_TESTS = false;
@@ -159,7 +161,18 @@ describe('AIManager', () => {
       const move = greedyManager.getAIMove(Player.NORTH, board);
 
       expect(move).not.toBeNull();
-      expect(move?.to).toEqual({ q: 0, r: 1, s: -1 });
+
+      const allMoves = getAllPossibleMoves(board, Player.NORTH);
+      const evaluatedMove = { from: move!.from, to: move!.to };
+      const targetProgress =
+        evaluateForwardProgress(evaluatedMove, board, Player.NORTH) ?? -Infinity;
+      const maxProgress = Math.max(
+        ...allMoves.map((candidate) =>
+          evaluateForwardProgress(candidate, board, Player.NORTH) ?? -Infinity
+        )
+      );
+
+      expect(targetProgress).toBe(maxProgress);
     });
   });
 

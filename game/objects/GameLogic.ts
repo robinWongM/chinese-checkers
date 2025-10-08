@@ -6,9 +6,13 @@ export class GameLogic {
   private gameState: GameState;
 
   constructor(board: Map<string, BoardPosition>, config: GameConfig) {
+    const activePlayers = config.activePlayers;
+    const startingPlayer =
+      activePlayers.length > 0 ? activePlayers[0] ?? Player.NONE : Player.NONE;
+
     this.gameState = {
       config,
-      currentPlayer: config.activePlayers[0],
+      currentPlayer: startingPlayer,
       currentPlayerIndex: 0,
       board,
       selectedPosition: null,
@@ -54,9 +58,14 @@ export class GameLogic {
       this.gameState.winner = this.gameState.currentPlayer;
     } else {
       // Move to next player
-      this.gameState.currentPlayerIndex = 
-        (this.gameState.currentPlayerIndex + 1) % this.gameState.config.activePlayers.length;
-      this.gameState.currentPlayer = this.gameState.config.activePlayers[this.gameState.currentPlayerIndex];
+      const totalPlayers = this.gameState.config.activePlayers.length;
+      if (totalPlayers > 0) {
+        this.gameState.currentPlayerIndex =
+          (this.gameState.currentPlayerIndex + 1) % totalPlayers;
+        this.gameState.currentPlayer =
+          this.gameState.config.activePlayers[this.gameState.currentPlayerIndex] ??
+          Player.NONE;
+      }
     }
 
     this.gameState.selectedPosition = null;
@@ -251,9 +260,13 @@ export class GameLogic {
   }
 
   public reset(board: Map<string, BoardPosition>, config: GameConfig): void {
+    const activePlayers = config.activePlayers;
+    const startingPlayer =
+      activePlayers.length > 0 ? activePlayers[0] ?? Player.NONE : Player.NONE;
+
     this.gameState = {
       config,
-      currentPlayer: config.activePlayers[0],
+      currentPlayer: startingPlayer,
       currentPlayerIndex: 0,
       board,
       selectedPosition: null,

@@ -1,4 +1,5 @@
-import { GameConfig, Player } from '../types';
+import type { GameConfig } from '../types';
+import { Player } from '../types';
 
 // Default 2-player configuration (South vs North)
 export const DEFAULT_2_PLAYER_CONFIG: GameConfig = {

@@ -1,4 +1,5 @@
-import { HexPosition, BoardPosition, Player, GameConfig } from '../types';
+import type { HexPosition, BoardPosition, GameConfig } from '../types';
+import { Player } from '../types';
 
 export class HexUtils {
   static toKey(pos: HexPosition): string {
@@ -6,8 +7,12 @@ export class HexUtils {
   }
 
   static fromKey(key: string): HexPosition {
-    const [q, r] = key.split(',').map(Number);
-    return { q, r, s: -q - r };
+    const parts = key.split(',');
+    const q = Number(parts[0] ?? 0);
+    const r = Number(parts[1] ?? 0);
+    const s =
+      parts[2] !== undefined ? Number(parts[2]) : -q - r;
+    return { q, r, s };
   }
 
   static equals(a: HexPosition, b: HexPosition): boolean {

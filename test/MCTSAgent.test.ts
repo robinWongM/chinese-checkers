@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MCTSAgent } from '../src/game/ai/MCTSAgent';
-import { Player, BoardPosition, GameConfig } from '../src/game/types';
-import { HexUtils } from '../src/game/objects/Position';
+import { MCTSAgent } from '../game/ai/MCTSAgent';
+import { Player } from '../game/types';
+import type { BoardPosition, GameConfig } from '../game/types';
+import { HexUtils } from '../game/objects/Position';
 
 const TEST_CONFIG: GameConfig = {
   playerCount: 2,
@@ -269,4 +270,3 @@ describe('MCTSAgent', () => {
     });
   });
 });
-

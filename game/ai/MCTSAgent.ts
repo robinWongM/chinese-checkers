@@ -3,8 +3,8 @@ import { PlayerInfo } from '../types';
 import { HexUtils } from '../objects/Position';
 import { MCTSNode } from './MCTSNode';
 import type { AIAgent } from './AIAgent';
+import type { Move } from './MoveUtils';
 import {
-  Move,
   applyMove,
   getAllPossibleMoves,
   getCornerCenter
@@ -81,9 +81,13 @@ export class MCTSAgent implements AIAgent {
 
     // Fallback to random untried move if no children
     if (root.untriedMoves.length > 0) {
-      const randomMove = root.untriedMoves[Math.floor(Math.random() * root.untriedMoves.length)];
-      console.log(`⚠️ Fallback to random move`);
-      return randomMove;
+      const randomMove =
+        root.untriedMoves[Math.floor(Math.random() * root.untriedMoves.length)] ??
+        null;
+      if (randomMove) {
+        console.log(`⚠️ Fallback to random move`);
+        return randomMove;
+      }
     }
 
     return null;
@@ -112,6 +116,10 @@ export class MCTSAgent implements AIAgent {
     // Pop a random untried move
     const moveIndex = Math.floor(Math.random() * node.untriedMoves.length);
     const move = node.untriedMoves.splice(moveIndex, 1)[0];
+
+    if (!move) {
+      return node;
+    }
 
     // Create new board state with the move applied
     const newBoard = applyMove(node.board, move);
@@ -143,11 +151,16 @@ export class MCTSAgent implements AIAgent {
         break;
       }
 
-      let chosenMove: Move;
+      let chosenMove: Move | null = null;
 
       if (currentPlayer === this.player) {
         // AI player: Use greedy selection (best evaluation)
-        let bestMove = moves[0];
+        const [firstMove] = moves;
+        if (!firstMove) {
+          break;
+        }
+
+        let bestMove = firstMove;
         let bestValue = -Infinity;
 
         for (const move of moves) {
@@ -163,15 +176,32 @@ export class MCTSAgent implements AIAgent {
         chosenMove = bestMove;
       } else {
         // Opponent: Random selection
-        chosenMove = moves[Math.floor(Math.random() * moves.length)];
+        chosenMove =
+          moves[Math.floor(Math.random() * moves.length)] ?? null;
+      }
+
+      if (!chosenMove) {
+        break;
       }
 
       board = applyMove(board, chosenMove);
 
       // Alternate players
-      const playerIndex = this.config.activePlayers.indexOf(currentPlayer);
-      const nextPlayerIndex = (playerIndex + 1) % this.config.activePlayers.length;
-      currentPlayer = this.config.activePlayers[nextPlayerIndex];
+      const activePlayers = this.config.activePlayers;
+      if (activePlayers.length === 0) {
+        break;
+      }
+
+      const playerIndex = activePlayers.indexOf(currentPlayer);
+      const nextPlayerIndex =
+        playerIndex >= 0
+          ? (playerIndex + 1) % activePlayers.length
+          : 0;
+      const nextPlayer = activePlayers[nextPlayerIndex];
+      if (nextPlayer === undefined) {
+        break;
+      }
+      currentPlayer = nextPlayer;
     }
 
     return this.evaluate(board);

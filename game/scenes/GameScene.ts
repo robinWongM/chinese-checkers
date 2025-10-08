@@ -1,20 +1,56 @@
 import Phaser from 'phaser';
 import { Board } from '../objects/Board';
 import { GameLogic } from '../objects/GameLogic';
-import { UIManager } from '../managers/UIManager';
 import { InputManager } from '../managers/InputManager';
 import { AIManager } from '../managers/AIManager';
-import { Player, HexPosition, GameConfig } from '../types';
+import { Player } from '../types';
+import type { HexPosition, GameConfig, GameState } from '../types';
 import { PLAYER_VS_AI_CONFIG } from '../config/gameConfig';
 
 const CAMERA_ANGLE = -30;
 const POST_MOVE_DELAY = 350; // ms
 const AI_THINKING_DELAY = 500; // ms - delay before AI makes a move
 
+export interface GameUIHooks {
+  updateTurn(player: Player): void;
+  showWinMessage(winner: Player): void;
+  hideWinMessage(): void;
+  setAIThinking?(thinking: boolean): void;
+}
+
 export class GameScene extends Phaser.Scene {
+  private static uiHooks: GameUIHooks | null = null;
+  private static activeInstance: GameScene | null = null;
+  private static readyCallbacks: Array<(scene: GameScene) => void> = [];
+
+  public static registerUIHooks(hooks: GameUIHooks | null): void {
+    GameScene.uiHooks = hooks;
+  }
+
+  public static onReady(callback: (scene: GameScene) => void): void {
+    if (GameScene.activeInstance) {
+      callback(GameScene.activeInstance);
+    } else {
+      GameScene.readyCallbacks.push(callback);
+    }
+  }
+
+  private static notifyReady(scene: GameScene): void {
+    GameScene.activeInstance = scene;
+    if (GameScene.readyCallbacks.length) {
+      GameScene.readyCallbacks.forEach((cb) => cb(scene));
+      GameScene.readyCallbacks = [];
+    }
+  }
+
+  private static clearActiveInstance(scene: GameScene): void {
+    if (GameScene.activeInstance === scene) {
+      GameScene.activeInstance = null;
+    }
+  }
+
   private board!: Board;
   private gameLogic!: GameLogic;
-  private uiManager!: UIManager;
   private inputManager!: InputManager;
   private aiManager!: AIManager;
   private gameConfig!: GameConfig;
@@ -38,23 +74,28 @@ export class GameScene extends Phaser.Scene {
     this.board = new Board(this, centerX, centerY, hexSize, this.gameConfig);
     this.gameLogic = new GameLogic(this.board.getBoard(), this.gameConfig);
     this.aiManager = new AIManager(this.gameConfig);
-    this.uiManager = new UIManager(
-      () => this.restartGame(),
-      () => this.exportGameState(),
-      () => this.importGameState()
-    );
-    
     this.inputManager = new InputManager(this, CAMERA_ANGLE);
     this.setupInputHandlers();
-    this.updateUI();
+    this.emitTurnUpdate();
+    GameScene.uiHooks?.hideWinMessage();
+    GameScene.uiHooks?.setAIThinking?.(false);
 
     this.cameras.main.setBackgroundColor('#111827');
     
     // Rotate the camera for a better isometric-like view
     this.cameras.main.setAngle(CAMERA_ANGLE);
     
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+
     // Check if AI should make the first move
     this.checkAITurn();
+
+    GameScene.notifyReady(this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      GameScene.clearActiveInstance(this);
+      GameScene.uiHooks?.setAIThinking?.(false);
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    });
   }
 
   private setupInputHandlers(): void {
@@ -114,6 +155,31 @@ export class GameScene extends Phaser.Scene {
     });
   }
   
+  private emitTurnUpdate(): void {
+    const state = this.gameLogic.getState();
+    GameScene.uiHooks?.updateTurn(state.currentPlayer);
+  }
+
+  private setAIThinking(thinking: boolean): void {
+    this.isAIThinking = thinking;
+    GameScene.uiHooks?.setAIThinking?.(thinking);
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    const width = gameSize.width;
+    const height = gameSize.height;
+    const hexSize = Math.min(width, height) / 24;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    this.cameras.main.setSize(width, height);
+    this.cameras.main.centerOn(centerX, centerY);
+
+    this.board.resize(centerX, centerY, hexSize);
+    this.updatePieceInteractivity();
+    this.refreshHighlightsAfterResize();
+  }
+
   private handlePieceSelection(pos: HexPosition): void {
     // Don't allow selection if AI is thinking
     if (this.isAIThinking) {
@@ -158,9 +224,9 @@ export class GameScene extends Phaser.Scene {
       
       this.time.delayedCall(POST_MOVE_DELAY, () => {
         this.updatePieceInteractivity();
-        this.updateUI();
-        this.checkWin();
-        
+        this.emitTurnUpdate();
+        this.updateWinState();
+
         // Check if AI should move next
         this.checkAITurn();
       });
@@ -197,7 +263,7 @@ export class GameScene extends Phaser.Scene {
    * Make AI move with a delay for better UX
    */
   private makeAIMove(): void {
-    this.isAIThinking = true;
+    this.setAIThinking(true);
     const currentPlayer = this.gameLogic.getState().currentPlayer;
     
     console.log(`🤖 AI Player ${currentPlayer} is thinking...`);
@@ -219,77 +285,69 @@ export class GameScene extends Phaser.Scene {
         
         if (moveSuccess) {
           this.time.delayedCall(POST_MOVE_DELAY, () => {
-            this.isAIThinking = false;
+            this.setAIThinking(false);
             this.updatePieceInteractivity();
-            this.updateUI();
-            this.checkWin();
-            
+            this.emitTurnUpdate();
+            this.updateWinState();
+
             // Check if next player is also AI (for AI vs AI mode)
             this.checkAITurn();
           });
         } else {
-          this.isAIThinking = false;
+          this.setAIThinking(false);
           console.error('❌ AI move failed');
         }
       } else {
-        this.isAIThinking = false;
+        this.setAIThinking(false);
         console.error('❌ AI could not find a valid move');
       }
     });
   }
 
-  private exportGameState(): void {
-    const state = this.gameLogic.exportState();
-    navigator.clipboard.writeText(state).then(() => {
-      console.log('📋 Board state copied to clipboard!');
-      alert('✅ Board state copied to clipboard!');
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-      alert('❌ Copy failed. See console for state.');
-      console.log(state);
-    });
+  public restartGame(): void {
+    this.inputManager.destroy();
+    GameScene.uiHooks?.hideWinMessage();
+    this.setAIThinking(false);
+    this.scene.restart();
   }
 
-  private async importGameState(): Promise<void> {
-    try {
-      const text = await navigator.clipboard.readText();
-      this.applyImportedState(text);
-    } catch (err) {
-      console.error('Failed to read clipboard:', err);
-      const text = prompt('Please paste the board state JSON:');
-      if (text) {
-        this.applyImportedState(text);
-      }
-    }
+  public getSerializedState(): string {
+    return this.gameLogic.exportState();
   }
-  
-  private applyImportedState(state: string): void {
-    if (this.gameLogic.importState(state)) {
+
+  public applySerializedState(serialized: string): boolean {
+    const success = this.gameLogic.importState(serialized);
+    if (success) {
+      this.setAIThinking(false);
       this.board.clearHighlights();
       this.board.renderBoard(this.gameLogic.getState().board);
-      this.updateUI();
       this.updatePieceInteractivity();
-      alert('✅ Board state imported successfully!');
-    } else {
-      alert('❌ Import failed. Invalid JSON format.');
+      this.emitTurnUpdate();
+      this.updateWinState();
     }
+    return success;
   }
 
-  private updateUI(): void {
-    this.uiManager.updateTurn(this.gameLogic.getState().currentPlayer);
+  public getStateSnapshot(): GameState {
+    return this.gameLogic.getState();
   }
 
-  private checkWin(): void {
+  private updateWinState(): void {
     const state = this.gameLogic.getState();
-    
     if (state.winner) {
-      this.uiManager.showWinMessage(state.winner);
+      GameScene.uiHooks?.showWinMessage(state.winner);
+    } else {
+      GameScene.uiHooks?.hideWinMessage();
     }
   }
 
-  private restartGame(): void {
-    this.inputManager.destroy();
-    this.uiManager.hideWinMessage();
-    this.scene.restart();
+  private refreshHighlightsAfterResize(): void {
+    const state = this.gameLogic.getState();
+    this.board.clearHighlights();
+
+    if (state.selectedPosition) {
+      this.board.highlightSelected(state.selectedPosition);
+      this.board.highlightPositions(state.validMoves, (targetPos) => this.handleMove(targetPos));
+    }
   }
 }

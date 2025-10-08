@@ -37,7 +37,7 @@ export class InputManager extends Phaser.Events.EventEmitter {
     this.emit('pointerdown_transformed', { x: rotatedX, y: rotatedY });
   }
 
-  public destroy(): void {
+  public override destroy(): void {
     this.scene.input.off('pointerdown', this.handlePointerDown, this);
     this.removeAllListeners();
   }

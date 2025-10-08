@@ -27,6 +27,10 @@ export class AIManager {
    */
   private initializeAgents(): void {
     if (!this.config.playerConfigs) return;
+    if (this.config.activePlayers.length === 0) {
+      console.warn('⚠️ No active players configured for AIManager.');
+      return;
+    }
 
     this.config.playerConfigs.forEach((playerConfig, index) => {
       if (!playerConfig.isAI) {
@@ -35,8 +39,18 @@ export class AIManager {
 
       const aiType: AIType = playerConfig.aiType ?? 'mcts';
 
-      const opponentIndex = (index + 1) % this.config.activePlayers.length;
-      const opponent = this.config.activePlayers[opponentIndex];
+      const activePlayers = this.config.activePlayers;
+      if (activePlayers.length === 0) {
+        return;
+      }
+
+      const opponentIndex = (index + 1) % activePlayers.length;
+      const opponent = activePlayers[opponentIndex];
+
+      if (opponent === undefined) {
+        console.warn(`⚠️ Unable to resolve opponent for Player ${playerConfig.player}`);
+        return;
+      }
 
       const timeLimit = this.resolveTimeLimit(playerConfig.aiDifficulty);
 
@@ -109,8 +123,15 @@ export class AIManager {
         return;
       }
 
-      const opponentIndex = (index + 1) % this.config.activePlayers.length;
-      const opponent = this.config.activePlayers[opponentIndex];
+      const activePlayers = this.config.activePlayers;
+      if (activePlayers.length === 0) {
+        return;
+      }
+      const opponentIndex = (index + 1) % activePlayers.length;
+      const opponent = activePlayers[opponentIndex];
+      if (opponent === undefined) {
+        return;
+      }
       agent.setOpponent(opponent);
     });
   }
