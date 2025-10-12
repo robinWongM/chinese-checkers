@@ -1,6 +1,6 @@
 # 🌟 Chinese Checkers
 
-A mobile-first Chinese Checkers game built with Phaser 3, TypeScript, and Tailwind CSS.
+A mobile-first Chinese Checkers game built with Babylon.js, TypeScript, and Tailwind CSS.
 
 ## 🚀 Quick Start
 
@@ -51,10 +51,10 @@ A mobile-first Chinese Checkers game built with Phaser 3, TypeScript, and Tailwi
 
 ## 🛠️ Technology Stack
 
-- **Game Framework:** Phaser 3.80.1
+- **Rendering Engine:** Babylon.js 8
 - **Language:** TypeScript 5.3
 - **Styling:** Tailwind CSS 3.4
-- **Build Tool:** Vite 5.0
+- **App Framework:** Nuxt 4 + Vue 3
 - **Architecture:** Hexagonal grid system with cube coordinates (6-corner star layout)
 
 ## 📁 Project Structure
@@ -63,7 +63,7 @@ A mobile-first Chinese Checkers game built with Phaser 3, TypeScript, and Tailwi
 /
 ├── src/
 │   ├── game/
-│   │   ├── config.ts          # Phaser game configuration
+│   │   ├── config.ts          # Babylon game bootstrap
 │   │   ├── scenes/
 │   │   │   └── GameScene.ts   # Main game scene
 │   │   ├── objects/

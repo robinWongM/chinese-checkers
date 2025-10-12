@@ -1,28 +1,10 @@
-import Phaser from 'phaser';
-import { GameScene } from './scenes/GameScene';
+import { BabylonGame } from './engine/BabylonGame';
 
-export const gameConfig: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
-  parent: 'game-container',
-  backgroundColor: '#111827',
-  scale: {
-    mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { x: 0, y: 0 },
-      debug: false
-    }
-  },
-  scene: [GameScene],
-  input: {
-    activePointers: 1
-  },
-  render: {
-    pixelArt: false,
-    antialias: true,
-    antialiasGL: true
-  }
+export type GameApp = BabylonGame;
+
+export const createGameApp = async (canvas: HTMLCanvasElement): Promise<GameApp> => {
+  const game = new BabylonGame(canvas);
+  await game.init();
+  return game;
 };
+

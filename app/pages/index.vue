@@ -1,16 +1,32 @@
 <template>
-  <div class="h-screen bg-slate-900 flex items-center justify-center">
-    <div class="text-white text-center">
-      <h1 class="text-2xl font-bold mb-4">Chinese Checkers</h1>
-      <p class="text-slate-300 mb-6">Redirecting to menu...</p>
-      <div class="inline-flex items-center space-x-2">
-        <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-        <span>Loading...</span>
-      </div>
-    </div>
+  <div class="h-screen w-screen bg-slate-900">
+    <canvas
+      id="game-canvas"
+      ref="canvasRef"
+      class="h-full w-full"
+    ></canvas>
   </div>
 </template>
 
 <script setup lang="ts">
-await navigateTo('/menu')
+import { onBeforeUnmount, onMounted, ref } from 'vue';
+
+const canvasRef = ref<HTMLCanvasElement | null>(null);
+let game: Awaited<ReturnType<typeof import('@game/config').createGameApp>> | null = null;
+
+onMounted(async () => {
+  const canvas = canvasRef.value;
+  if (!canvas) {
+    return;
+  }
+  const { createGameApp } = await import('@game/config');
+  game = await createGameApp(canvas);
+});
+
+onBeforeUnmount(() => {
+  if (game) {
+    game.dispose();
+    game = null;
+  }
+});
 </script>
