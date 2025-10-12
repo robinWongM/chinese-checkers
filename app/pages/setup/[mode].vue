@@ -16,7 +16,7 @@
 
       <div class="flex-1 overflow-y-auto p-6">
         <!-- Player Count Selection -->
-        <div class="mb-8">
+        <div v-if="currentMode === 'multiplayer'" class="mb-8">
           <label class="block text-sm font-medium mb-3 text-slate-300">Number of Players</label>
           <div class="grid grid-cols-3 gap-3">
             <button
@@ -57,7 +57,7 @@
         </div>
 
         <!-- Player Configuration for Multiplayer -->
-        <div v-if="route.params.mode === 'multiplayer'" class="mb-8">
+        <div v-if="currentMode === 'multiplayer'" class="mb-8">
           <label class="block text-sm font-medium mb-3 text-slate-300">Player Configuration</label>
           <div class="space-y-3">
             <div 
@@ -102,19 +102,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute, useRouter, navigateTo } from '#app'
-import { Player, PlayerInfo } from '@game/types'
+import { ref, computed, watch } from 'vue'
+import { useRoute, navigateTo } from '#app'
+import { Player, PlayerInfo, type GameConfig, type PlayerConfig } from '@game/types'
 
 const route = useRoute()
-const router = useRouter()
 
 const playerCount = ref(2)
 const aiDifficulty = ref<'easy' | 'medium' | 'hard'>('medium')
 const playerTypes = ref<('human' | 'ai')[]>(['human', 'ai'])
 
+const currentMode = computed(() => {
+  const mode = Array.isArray(route.params.mode) ? route.params.mode[0] : route.params.mode
+  return (mode as string) ?? 'multiplayer'
+})
+
 const modeName = computed(() => {
-  switch (route.params.mode) {
+  switch (currentMode.value) {
     case 'ai': return 'Play vs AI'
     case 'multiplayer': return 'Local Multiplayer'
     default: return 'Game'
@@ -122,8 +126,8 @@ const modeName = computed(() => {
 })
 
 const showAIDifficulty = computed(() => 
-  route.params.mode === 'ai' || 
-  (route.params.mode === 'multiplayer' && playerTypes.value.some((type: 'human' | 'ai') => type === 'ai'))
+  currentMode.value === 'ai' || 
+  (currentMode.value === 'multiplayer' && playerTypes.value.some((type: 'human' | 'ai') => type === 'ai'))
 )
 
 const playerConfig = computed(() => {
@@ -141,9 +145,9 @@ const playerConfig = computed(() => {
 })
 
 // Initialize defaults based on mode
-watch(() => route.params.mode, (newMode: string | string[] | undefined) => {
-  const mode = Array.isArray(newMode) ? newMode[0] : newMode
+watch(currentMode, (mode) => {
   if (mode === 'ai') {
+    playerCount.value = 2
     playerTypes.value = ['human', 'ai']
   } else if (mode === 'multiplayer') {
     playerTypes.value = Array(playerCount.value).fill('human')
@@ -152,7 +156,7 @@ watch(() => route.params.mode, (newMode: string | string[] | undefined) => {
 
 // Update player types when player count changes
 watch(playerCount, (newCount: number) => {
-  if (route.params.mode === 'multiplayer') {
+  if (currentMode.value === 'multiplayer') {
     playerTypes.value = Array(newCount).fill('human')
   }
 })
@@ -171,18 +175,39 @@ function goToMenu() {
 }
 
 function startGame() {
-  const config: any = { 
-    playerCount: playerCount.value,
-    mode: route.params.mode
+  const mode = currentMode.value
+  const activePlayers = mode === 'ai'
+    ? [Player.SOUTH, Player.NORTH]
+    : playerConfig.value.slice(0, playerCount.value)
+
+  const resolvedPlayerTypes = activePlayers.map((_, index) => {
+    if (mode === 'ai') {
+      return index === 0 ? 'human' : 'ai'
+    }
+    return playerTypes.value[index] ?? 'human'
+  })
+
+  const playerConfigs: PlayerConfig[] = activePlayers.map((player, index) => {
+    const isAI = resolvedPlayerTypes[index] === 'ai'
+    return {
+      player,
+      isAI,
+      ...(isAI ? { aiType: 'greedy', aiDifficulty: aiDifficulty.value } : {})
+    }
+  })
+
+  const gameConfig: GameConfig = {
+    playerCount: activePlayers.length,
+    activePlayers,
+    playerConfigs
   }
-  
-  if (route.params.mode === 'ai') {
-    config.aiConfig = JSON.stringify({
-      type: 'greedy',
-      difficulty: aiDifficulty.value
-    })
-  } else if (route.params.mode === 'multiplayer') {
-    config.multiplayerConfig = playerTypes.value.slice(0, playerCount.value)
+
+  const config = {
+    mode,
+    playerCount: activePlayers.length,
+    aiDifficulty: aiDifficulty.value,
+    playerTypes: resolvedPlayerTypes,
+    gameConfig
   }
 
   // Store config in sessionStorage for the game page to access

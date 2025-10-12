@@ -98,7 +98,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
 import { useRoute, useRouter, navigateTo } from '#app';
 import type Phaser from 'phaser';
-import { Player, PlayerInfo } from '@game/types';
+import { Player, PlayerInfo, type GameConfig, type PlayerConfig } from '@game/types';
+import { DEFAULT_2_PLAYER_CONFIG, PRESET_CONFIGS } from '@game/config/gameConfig';
 import type { GameScene, GameUIHooks } from '@game/scenes/GameScene';
 
 const route = useRoute()
@@ -109,13 +110,138 @@ const winner = ref<Player | null>(null);
 const isAIThinking = ref(false);
 const statusMessage = ref('');
 const sceneRef = shallowRef<GameScene | null>(null);
-let gameConfigFromStorage: any = null;
 
 let lastTouchEnd = 0;
 let game: Phaser.Game | null = null;
 let disposed = false;
 let messageTimeout: ReturnType<typeof setTimeout> | null = null;
 let GameSceneClass: typeof import('@game/scenes/GameScene').GameScene | null = null;
+
+type StoredPlayerType = 'human' | 'ai';
+
+type StoredGameSetup = {
+  mode?: string;
+  playerCount?: number;
+  aiDifficulty?: 'easy' | 'medium' | 'hard';
+  playerTypes?: StoredPlayerType[];
+  gameConfig?: GameConfig;
+  aiConfig?: string;
+  multiplayerConfig?: StoredPlayerType[];
+};
+
+const normalizeGameConfig = (
+  config: GameConfig,
+  fallbackDifficulty: 'easy' | 'medium' | 'hard' = 'medium'
+): GameConfig => {
+  const activePlayers = [...config.activePlayers];
+  const playerConfigs: PlayerConfig[] = activePlayers.map((player) => {
+    const existing = config.playerConfigs?.find((pc) => pc.player === player);
+    if (existing?.isAI) {
+      return {
+        player,
+        isAI: true,
+        aiType: existing.aiType ?? 'greedy',
+        aiDifficulty: existing.aiDifficulty ?? fallbackDifficulty
+      };
+    }
+    return {
+      player,
+      isAI: false
+    };
+  });
+
+  return {
+    playerCount: activePlayers.length,
+    activePlayers,
+    playerConfigs
+  };
+};
+
+const buildMultiplayerConfig = (
+  playerTypes: StoredPlayerType[] = [],
+  count?: number,
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium'
+): GameConfig => {
+  const desiredCount =
+    count && count > 0
+      ? count
+      : playerTypes.length > 0
+        ? playerTypes.length
+        : DEFAULT_2_PLAYER_CONFIG.playerCount;
+
+  const preset =
+    PRESET_CONFIGS[desiredCount] ??
+    PRESET_CONFIGS[playerTypes.length] ??
+    DEFAULT_2_PLAYER_CONFIG;
+
+  const activePlayers = [...preset.activePlayers].slice(0, desiredCount);
+  const playerConfigs: PlayerConfig[] = activePlayers.map((player, index) => {
+    const type = playerTypes[index] ?? 'human';
+    const isAI = type === 'ai';
+    return {
+      player,
+      isAI,
+      ...(isAI ? { aiType: 'greedy', aiDifficulty: difficulty } : {})
+    };
+  });
+
+  return {
+    playerCount: activePlayers.length,
+    activePlayers,
+    playerConfigs
+  };
+};
+
+const buildAIConfig = (stored: StoredGameSetup = {}): GameConfig => {
+  let parsedAI: { type?: 'mcts' | 'greedy'; difficulty?: 'easy' | 'medium' | 'hard' } | null = null;
+
+  if (typeof stored.aiConfig === 'string') {
+    try {
+      parsedAI = JSON.parse(stored.aiConfig);
+    } catch (error) {
+      console.warn('Failed to parse AI config from storage:', error);
+    }
+  }
+
+  const aiDifficulty =
+    (parsedAI?.difficulty as 'easy' | 'medium' | 'hard' | undefined) ??
+    stored.aiDifficulty ??
+    'medium';
+  const aiType = (parsedAI?.type as 'mcts' | 'greedy' | undefined) ?? 'greedy';
+
+  return {
+    playerCount: 2,
+    activePlayers: [Player.SOUTH, Player.NORTH],
+    playerConfigs: [
+      { player: Player.SOUTH, isAI: false },
+      { player: Player.NORTH, isAI: true, aiType, aiDifficulty }
+    ]
+  };
+};
+
+const resolveStoredGameConfig = (stored: StoredGameSetup | null): GameConfig => {
+  const fallbackDifficulty = stored?.aiDifficulty ?? 'medium';
+
+  if (stored?.gameConfig) {
+    return normalizeGameConfig(stored.gameConfig, fallbackDifficulty);
+  }
+
+  const typeList =
+    stored?.multiplayerConfig ??
+    stored?.playerTypes;
+
+  if ((stored?.mode === 'multiplayer' || Array.isArray(typeList)) && typeList) {
+    return buildMultiplayerConfig(typeList, stored?.playerCount, fallbackDifficulty);
+  }
+
+  if (stored?.mode === 'ai' || stored?.aiConfig) {
+    return buildAIConfig(stored ?? {});
+  }
+
+  return normalizeGameConfig(DEFAULT_2_PLAYER_CONFIG, fallbackDifficulty);
+};
+
+let storedGameSetup: StoredGameSetup | null = null;
 
 const getPlayerColorClass = (player: Player | null): string => {
   if (player === null) {
@@ -296,8 +422,17 @@ onMounted(async () => {
     return;
   }
   
-  gameConfigFromStorage = JSON.parse(configData);
-  console.log('Starting game with config:', gameConfigFromStorage);
+  try {
+    storedGameSetup = JSON.parse(configData) as StoredGameSetup;
+  } catch (error) {
+    console.error('Failed to parse stored game configuration:', error);
+    router.push('/menu');
+    return;
+  }
+
+  console.log('Starting game with stored setup:', storedGameSetup);
+  const initialGameConfig = resolveStoredGameConfig(storedGameSetup);
+  console.log('Resolved game configuration:', initialGameConfig);
 
   document.addEventListener('touchmove', preventTouchMove, { passive: false });
   document.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -308,13 +443,8 @@ onMounted(async () => {
     import('@game/scenes/GameScene')
   ]);
 
-  // Apply configuration to game config
-  if (gameConfigFromStorage) {
-    console.log('Applying game configuration:', gameConfigFromStorage);
-    // TODO: Apply configuration to game config based on selections
-  }
-
   GameSceneClass = gameSceneModule.GameScene;
+  GameSceneClass.setInitialConfig(initialGameConfig);
   GameSceneClass.registerUIHooks(uiHooks);
   GameSceneClass.onReady(bindScene);
 

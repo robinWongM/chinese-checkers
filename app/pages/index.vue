@@ -12,7 +12,5 @@
 </template>
 
 <script setup lang="ts">
-onMounted(() => {
-  navigateTo('/menu');
-});
+await navigateTo('/menu')
 </script>

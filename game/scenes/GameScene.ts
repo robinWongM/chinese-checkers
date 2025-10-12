@@ -5,7 +5,7 @@ import { InputManager } from '../managers/InputManager';
 import { AIManager } from '../managers/AIManager';
 import { Player } from '../types';
 import type { HexPosition, GameConfig, GameState } from '../types';
-import { PLAYER_VS_AI_CONFIG } from '../config/gameConfig';
+import { DEFAULT_2_PLAYER_CONFIG } from '../config/gameConfig';
 
 const CAMERA_ANGLE = -30;
 const POST_MOVE_DELAY = 350; // ms
@@ -22,6 +22,7 @@ export class GameScene extends Phaser.Scene {
   private static uiHooks: GameUIHooks | null = null;
   private static activeInstance: GameScene | null = null;
   private static readyCallbacks: Array<(scene: GameScene) => void> = [];
+  private static initialConfig: GameConfig | null = null;
 
   public static registerUIHooks(hooks: GameUIHooks | null): void {
     GameScene.uiHooks = hooks;
@@ -49,6 +50,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  public static setInitialConfig(config: GameConfig | null): void {
+    if (config) {
+      GameScene.initialConfig = GameScene.cloneGameConfig(config);
+    } else {
+      GameScene.initialConfig = null;
+    }
+  }
+
+  private static cloneGameConfig(config: GameConfig): GameConfig {
+    const activePlayers = [...config.activePlayers];
+    const playerConfigs = activePlayers.map((player) => {
+      const existing = config.playerConfigs?.find((pc) => pc.player === player);
+      if (existing?.isAI) {
+        return {
+          player,
+          isAI: true,
+          aiType: existing.aiType ?? 'greedy',
+          aiDifficulty: existing.aiDifficulty ?? 'medium'
+        };
+      }
+      return {
+        player,
+        isAI: false
+      };
+    });
+
+    return {
+      playerCount: activePlayers.length,
+      activePlayers,
+      playerConfigs
+    };
+  }
+
   private board!: Board;
   private gameLogic!: GameLogic;
   private inputManager!: InputManager;
@@ -63,8 +97,9 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.cameras.main;
 
-    // Use AI configuration for Player vs AI mode
-    this.gameConfig = PLAYER_VS_AI_CONFIG;
+    const sourceConfig = GameScene.initialConfig ?? DEFAULT_2_PLAYER_CONFIG;
+    this.gameConfig = GameScene.cloneGameConfig(sourceConfig);
+    GameScene.initialConfig = GameScene.cloneGameConfig(this.gameConfig);
 
     // Reduced hex size to accommodate 6-corner layout (board extends to ±8)
     const hexSize = Math.min(width, height) / 28;
