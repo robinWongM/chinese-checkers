@@ -67,7 +67,7 @@ export class GameScene extends Phaser.Scene {
     this.gameConfig = PLAYER_VS_AI_CONFIG;
 
     // Reduced hex size to accommodate 6-corner layout (board extends to ±8)
-    const hexSize = Math.min(width, height) / 24;
+    const hexSize = Math.min(width, height) / 28;
     const centerX = width / 2;
     const centerY = height / 2;
 
@@ -79,8 +79,6 @@ export class GameScene extends Phaser.Scene {
     this.emitTurnUpdate();
     GameScene.uiHooks?.hideWinMessage();
     GameScene.uiHooks?.setAIThinking?.(false);
-
-    this.cameras.main.setBackgroundColor('#111827');
     
     // Rotate the camera for a better isometric-like view
     this.cameras.main.setAngle(CAMERA_ANGLE);
@@ -168,7 +166,7 @@ export class GameScene extends Phaser.Scene {
   private handleResize(gameSize: Phaser.Structs.Size): void {
     const width = gameSize.width;
     const height = gameSize.height;
-    const hexSize = Math.min(width, height) / 24;
+    const hexSize = Math.min(width, height) / 28;
     const centerX = width / 2;
     const centerY = height / 2;
 

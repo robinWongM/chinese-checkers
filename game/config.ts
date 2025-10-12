@@ -7,7 +7,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#111827',
   scale: {
     mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   physics: {
     default: 'arcade',

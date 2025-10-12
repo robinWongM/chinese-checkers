@@ -1,17 +1,3 @@
 {
   "extends": "./.nuxt/tsconfig.json",
-  "compilerOptions": {
-    "types": ["vitest/globals"],
-    "paths": {
-      "@game/*": ["./game/*"],
-      "~game/*": ["./game/*"]
-    }
-  },
-  "include": [
-    "app/**/*.vue",
-    "components/**/*.vue",
-    "game/**/*.ts",
-    "test/**/*.ts",
-    "nuxt.config.ts"
-  ]
 }
