@@ -1,9 +1,9 @@
 import { Engine, Scene } from '@babylonjs/core';
 import '@babylonjs/inspector';
 import { BaseScene } from './BaseScene';
-import { MenuScene } from '../scenes/MenuScene';
-import { SetupScene, type SetupSceneData } from '../scenes/SetupScene';
-import { GameScene, type GameSceneData } from '../scenes/GameScene';
+import { createSceneInstance } from './SceneRegistry';
+import type { SetupSceneData } from '../scenes/SetupScene';
+import type { GameSceneData } from '../scenes/GameScene';
 
 export interface SceneContextMap {
   MenuScene: undefined;
@@ -47,23 +47,7 @@ export class BabylonGame {
     this.currentScene?.dispose();
 
     const scene = new Scene(this.engine);
-    let nextScene: SceneInstance;
-
-    switch (key) {
-      case 'MenuScene':
-        nextScene = new MenuScene(this, scene);
-        break;
-      case 'SetupScene':
-        nextScene = new SetupScene(this, scene);
-        break;
-      case 'GameScene':
-        nextScene = new GameScene(this, scene);
-        break;
-      default: {
-        const exhaustiveCheck: never = key;
-        throw new Error(`Unknown scene key: ${exhaustiveCheck}`);
-      }
-    }
+    const nextScene = createSceneInstance(key, this, scene) as SceneInstance;
 
     this.currentScene = nextScene;
     this.currentKey = key;

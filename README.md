@@ -66,10 +66,14 @@ A mobile-first Chinese Checkers game built with Babylon.js, TypeScript, and Tail
 │   │   ├── config.ts          # Babylon game bootstrap
 │   │   ├── scenes/
 │   │   │   └── GameScene.ts   # Main game scene
-│   │   ├── objects/
-│   │   │   ├── Board.ts       # Board rendering & management
-│   │   │   ├── Position.ts    # Hexagonal grid utilities
-│   │   │   └── GameLogic.ts   # Game rules & state
+│   │   ├── world/
+│   │   │   └── Board.ts       # Board rendering & mesh management
+│   │   ├── logic/
+│   │   │   ├── GameLogic.ts   # Game rules & state
+│   │   │   └── HexUtils.ts    # Hexagonal grid utilities
+│   │   ├── ui/
+│   │   │   ├── UIButton.ts    # Reusable Babylon GUI button
+│   │   │   └── GameHUD.ts     # In-game heads-up display
 │   │   └── types/
 │   │       └── index.ts       # TypeScript type definitions
 │   ├── styles/

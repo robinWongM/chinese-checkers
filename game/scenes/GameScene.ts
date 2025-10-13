@@ -1,131 +1,83 @@
-import {
-  ArcRotateCamera,
-  Color3,
-  HemisphericLight,
-  PointerEventTypes,
-  Vector3
-} from '@babylonjs/core';
 import { BaseScene } from '../engine/BaseScene';
-import { Board } from '../objects/Board';
-import { GameLogic } from '../objects/GameLogic';
+import { GameLogic } from '../logic/GameLogic';
 import { AIManager } from '../managers/AIManager';
-import { Player } from '../types';
-import type { AIType, GameConfig, GameState, HexPosition } from '../types';
-import {
-  createLaunchSettings,
-  type Difficulty,
-  type GameLaunchSettings,
-  type GameMode,
-  type PlayerType
-} from '../config/setup';
-import { DEFAULT_2_PLAYER_CONFIG } from '../config/gameConfig';
-import { GameHUD } from '../objects/ui/GameHUD';
+import type { GameConfig, GameState, HexPosition } from '../types';
+import type { GameLaunchSettings } from '../config/setup';
+import { GameSession } from '../config/GameSession';
+import { GameHUD } from '../ui/GameHUD';
+import { GameCameraRig } from '../systems/GameCameraRig';
+import { GameBoardSystem } from '../systems/GameBoardSystem';
+import { PointerInputSystem } from '../systems/PointerInputSystem';
+import { FrameScheduler } from '../systems/FrameScheduler';
+import { TurnManager } from '../systems/TurnManager';
 
-const POST_MOVE_DELAY = 350;
-const AI_THINKING_DELAY = 500;
+const MIN_HEX_SCALE = 0.5;
+const BASE_VIEWPORT_SIZE = 900;
 
 export interface GameSceneData {
   setup?: GameLaunchSettings;
 }
 
-interface SetupMeta {
-  mode: GameMode;
-  playerCount: number;
-  playerTypes: PlayerType[];
-  aiDifficulty: Difficulty;
-  aiType: AIType;
-}
-
 export class GameScene extends BaseScene {
-  private camera!: ArcRotateCamera;
-  private board!: Board;
+  private cameraRig!: GameCameraRig;
+  private boardSystem!: GameBoardSystem;
   private gameLogic!: GameLogic;
   private aiManager!: AIManager;
   private hud!: GameHUD;
+  private scheduler!: FrameScheduler;
+  private pointerSystem!: PointerInputSystem;
+  private turnManager!: TurnManager;
+  private session!: GameSession;
   private gameConfig!: GameConfig;
-  private initialConfig!: GameConfig;
-  private setupMeta!: SetupMeta;
-  private isAIThinking = false;
-  private aiTimeout: ReturnType<typeof setTimeout> | null = null;
-  private postMoveTimeout: ReturnType<typeof setTimeout> | null = null;
   private hexSize = 1;
 
   async onEnter(data?: GameSceneData): Promise<void> {
     this.initializeState(data);
-    this.setupCameraAndLight();
-    this.setupBoard();
-    this.setupLogic();
-    this.setupHUD();
-    this.setupPointerHandlers();
-    this.emitTurnUpdate();
-    this.updateWinState();
-    this.checkAITurn();
+    this.bootstrapSystems();
+    this.pointerSystem = new PointerInputSystem(this.scene, this.boardSystem, {
+      onPiece: (position) => this.handlePieceSelection(position),
+      onHighlight: (position) => this.handleMove(position),
+      onEmpty: () => {
+        this.gameLogic.deselectPiece();
+        this.boardSystem.clearHighlights();
+      }
+    });
+    this.turnManager.start();
   }
 
   override onResize(width: number, height: number): void {
     this.hexSize = this.calculateHexSize(width, height);
-    this.board.resize(Vector3.Zero(), this.hexSize);
-    this.updateCameraRadius();
+    this.boardSystem.resize(this.hexSize);
+    this.cameraRig.updateForHexSize(this.hexSize);
     this.refreshHighlightsAfterResize();
   }
 
   override onExit(): void {
-    this.cancelTimers();
-    this.board?.dispose();
+    this.pointerSystem?.dispose();
+    this.turnManager?.cancel();
+    this.scheduler?.dispose();
+    this.boardSystem?.dispose();
+    this.cameraRig?.dispose();
     this.hud?.dispose();
   }
 
   private initializeState(data: GameSceneData | undefined): void {
-    const settings = data?.setup ?? createLaunchSettings({ gameConfig: DEFAULT_2_PLAYER_CONFIG });
-
-    this.setupMeta = {
-      mode: settings.mode,
-      playerCount: settings.playerCount,
-      playerTypes: [...settings.playerTypes],
-      aiDifficulty: settings.aiDifficulty,
-      aiType: settings.aiType
-    };
-
-    this.initialConfig = GameScene.cloneGameConfig(settings.gameConfig);
-    this.gameConfig = GameScene.cloneGameConfig(settings.gameConfig);
+    this.session = GameSession.create(data?.setup ?? null);
   }
 
-  private setupCameraAndLight(): void {
+  private bootstrapSystems(): void {
     const width = this.scene.getEngine().getRenderWidth();
     const height = this.scene.getEngine().getRenderHeight();
     this.hexSize = this.calculateHexSize(width, height);
 
-    this.camera = new ArcRotateCamera(
-      'game-camera',
-      Math.PI / 6 * 4,
-      0,
-      Math.PI / 3,
-      Vector3.Zero(),
-      this.scene
-    );
-    this.camera.attachControl(this.app.getCanvas(), true);
-    this.camera.allowUpsideDown = false;
-    this.camera.useAutoRotationBehavior = false;
-    this.camera.inputs.clear();
-    this.updateCameraRadius();
+    this.cameraRig = new GameCameraRig(this.scene, this.app.getCanvas());
+    this.cameraRig.updateForHexSize(this.hexSize);
 
-    const light = new HemisphericLight('game-light', new Vector3(0, 1, 0), this.scene);
-    light.diffuse = new Color3(1, 1, 1);
-    light.groundColor = new Color3(0.1, 0.12, 0.16);
-    light.specular = new Color3(0.5, 0.5, 0.5);
-    light.intensity = 0.95;
-  }
-
-  private setupBoard(): void {
-    this.board = new Board(this.scene, Vector3.Zero(), this.hexSize, this.gameConfig);
-  }
-
-  private setupLogic(): void {
-    this.gameLogic = new GameLogic(this.board.getBoard(), this.gameConfig);
+    this.gameConfig = this.session.createRuntimeConfig();
+    this.boardSystem = new GameBoardSystem(this.scene, this.hexSize, this.gameConfig);
+    this.gameLogic = new GameLogic(this.boardSystem.getState(), this.gameConfig);
     this.aiManager = new AIManager(this.gameConfig);
-  }
 
-  private setupHUD(): void {
     this.hud = new GameHUD(this.ui, {
       onRestart: () => { void this.handleRestart(); },
       onNewGame: () => { void this.handleNewGame(); },
@@ -134,41 +86,16 @@ export class GameScene extends BaseScene {
       onImport: () => { void this.handleImport(); }
     });
     this.hud.layout();
-  }
 
-  private setupPointerHandlers(): void {
-    this.scene.onPointerObservable.add((pointerInfo) => {
-      if (pointerInfo.type !== PointerEventTypes.POINTERDOWN) {
-        return;
-      }
-      const pickInfo = pointerInfo.pickInfo;
-      const mesh = pickInfo?.pickedMesh;
-      const metadata = mesh?.metadata as
-        | { type: 'piece' | 'highlight' | 'selection'; position: HexPosition }
-        | undefined;
-
-      if (!metadata) {
-        this.gameLogic.deselectPiece();
-        this.board.clearHighlights();
-        return;
-      }
-
-      if (metadata.type === 'piece') {
-        this.handlePieceSelection(metadata.position);
-      } else if (metadata.type === 'highlight') {
-        this.handleMove(metadata.position);
-      }
+    this.scheduler = new FrameScheduler(this.scene);
+    this.turnManager = new TurnManager({
+      scheduler: this.scheduler,
+      board: this.boardSystem,
+      logic: this.gameLogic,
+      aiManager: this.aiManager,
+      hud: this.hud,
+      onStatus: (message) => this.hud.setStatusMessage(message)
     });
-  }
-
-  private emitTurnUpdate(): void {
-    const state = this.gameLogic.getState();
-    this.hud.setTurn(state.currentPlayer);
-  }
-
-  private setAIThinking(thinking: boolean): void {
-    this.isAIThinking = thinking;
-    this.hud.setAIThinking(thinking);
   }
 
   private setStatusMessage(message: string): void {
@@ -176,30 +103,26 @@ export class GameScene extends BaseScene {
   }
 
   private handlePieceSelection(pos: HexPosition): void {
-    if (this.isAIThinking) {
+    if (this.turnManager.isHumanTurnLocked()) {
       return;
     }
 
-    if (this.aiManager.isAIPlayer(this.gameLogic.getState().currentPlayer)) {
-      return;
-    }
-
-    const boardPos = this.board.getPositionAt(pos);
     const currentPlayer = this.gameLogic.getState().currentPlayer;
+    const boardPos = this.boardSystem.getPositionAt(pos);
     if (!boardPos || boardPos.player !== currentPlayer) {
       return;
     }
 
     if (this.gameLogic.selectPiece(pos)) {
-      this.board.clearHighlights();
-      this.board.highlightSelected(pos);
+      this.boardSystem.clearHighlights();
+      this.boardSystem.highlightSelected(pos);
       const validMoves = this.gameLogic.getState().validMoves;
-      this.board.highlightPositions(validMoves);
+      this.boardSystem.highlightPositions(validMoves);
     }
   }
 
   private handleMove(toPos: HexPosition): void {
-    if (this.isAIThinking) {
+    if (this.turnManager.isHumanTurnLocked()) {
       return;
     }
 
@@ -210,67 +133,12 @@ export class GameScene extends BaseScene {
       return;
     }
 
-    this.board.movePiece(actualFromPos, toPos);
-
+    this.boardSystem.movePiece(actualFromPos, toPos);
     const moveSuccess = this.gameLogic.movePiece(toPos);
 
     if (moveSuccess) {
-      this.board.clearHighlights();
-      this.schedulePostMoveActions();
+      this.turnManager.handlePlayerMoveCommitted();
     }
-  }
-
-  private schedulePostMoveActions(): void {
-    if (this.postMoveTimeout) {
-      clearTimeout(this.postMoveTimeout);
-    }
-    this.postMoveTimeout = setTimeout(() => {
-      this.emitTurnUpdate();
-      this.updateWinState();
-      this.checkAITurn();
-    }, POST_MOVE_DELAY);
-  }
-
-  private checkAITurn(): void {
-    const currentPlayer = this.gameLogic.getState().currentPlayer;
-
-    if (
-      this.aiManager.isAIPlayer(currentPlayer) &&
-      !this.isAIThinking &&
-      !this.gameLogic.getState().winner
-    ) {
-      this.makeAIMove();
-    }
-  }
-
-  private makeAIMove(): void {
-    this.setAIThinking(true);
-    this.aiTimeout = setTimeout(() => {
-      const currentPlayer = this.gameLogic.getState().currentPlayer;
-      const move = this.aiManager.getAIMove(currentPlayer, this.gameLogic.getState().board);
-
-      if (move) {
-        this.gameLogic.selectPiece(move.from);
-        this.board.movePiece(move.from, move.to);
-
-        const moveSuccess = this.gameLogic.movePiece(move.to);
-
-        if (moveSuccess) {
-          this.postMoveTimeout = setTimeout(() => {
-            this.setAIThinking(false);
-            this.emitTurnUpdate();
-            this.updateWinState();
-            this.checkAITurn();
-          }, POST_MOVE_DELAY);
-        } else {
-          this.setAIThinking(false);
-          console.error('AI move failed');
-        }
-      } else {
-        this.setAIThinking(false);
-        console.error('AI could not find a valid move');
-      }
-    }, AI_THINKING_DELAY);
   }
 
   private async handleRestart(): Promise<void> {
@@ -326,12 +194,10 @@ export class GameScene extends BaseScene {
   public applySerializedState(serialized: string): boolean {
     const success = this.gameLogic.importState(serialized);
     if (success) {
-      this.cancelTimers();
-      this.setAIThinking(false);
-      this.board.clearHighlights();
-      this.board.refreshPieces();
-      this.emitTurnUpdate();
-      this.updateWinState();
+      this.turnManager.cancel();
+      this.boardSystem.clearHighlights();
+      this.boardSystem.refreshPieces();
+      this.turnManager.handleStateMutated();
     }
     return success;
   }
@@ -341,23 +207,7 @@ export class GameScene extends BaseScene {
   }
 
   private getLaunchSettings(): GameLaunchSettings {
-    return {
-      mode: this.setupMeta.mode,
-      playerCount: this.setupMeta.playerCount,
-      playerTypes: [...this.setupMeta.playerTypes],
-      aiDifficulty: this.setupMeta.aiDifficulty,
-      aiType: this.setupMeta.aiType,
-      gameConfig: GameScene.cloneGameConfig(this.initialConfig)
-    };
-  }
-
-  private updateWinState(): void {
-    const state = this.gameLogic.getState();
-    if (state.winner) {
-      this.hud.showWinner(state.winner);
-    } else {
-      this.hud.hideWinner();
-    }
+    return this.session.toLaunchSettings();
   }
 
   private refreshHighlightsAfterResize(): void {
@@ -365,54 +215,14 @@ export class GameScene extends BaseScene {
     if (!state.selectedPosition) {
       return;
     }
-    this.board.clearHighlights();
-    this.board.highlightSelected(state.selectedPosition);
-    this.board.highlightPositions(state.validMoves);
-  }
-
-  private updateCameraRadius(): void {
-    const radius = this.hexSize * 32;
-    this.camera.radius = radius;
+    this.boardSystem.clearHighlights();
+    this.boardSystem.highlightSelected(state.selectedPosition);
+    this.boardSystem.highlightPositions(state.validMoves);
   }
 
   private calculateHexSize(width: number, height: number): number {
-    const scale = Math.min(width, height) / 900;
-    return 1.2 * Math.max(0.5, scale);
+    const scale = Math.min(width, height) / BASE_VIEWPORT_SIZE;
+    return 1.2 * Math.max(MIN_HEX_SCALE, scale);
   }
 
-  private cancelTimers(): void {
-    if (this.aiTimeout) {
-      clearTimeout(this.aiTimeout);
-      this.aiTimeout = null;
-    }
-    if (this.postMoveTimeout) {
-      clearTimeout(this.postMoveTimeout);
-      this.postMoveTimeout = null;
-    }
-  }
-
-  private static cloneGameConfig(config: GameConfig): GameConfig {
-    const activePlayers = [...config.activePlayers];
-    const playerConfigs = activePlayers.map((player) => {
-      const existing = config.playerConfigs?.find((pc) => pc.player === player);
-      if (existing?.isAI) {
-        return {
-          player,
-          isAI: true,
-          aiType: existing.aiType ?? 'greedy',
-          aiDifficulty: existing.aiDifficulty ?? 'medium'
-        };
-      }
-      return {
-        player,
-        isAI: false
-      };
-    });
-
-    return {
-      playerCount: activePlayers.length,
-      activePlayers,
-      playerConfigs
-    };
-  }
 }

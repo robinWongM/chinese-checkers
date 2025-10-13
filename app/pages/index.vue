@@ -12,14 +12,14 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-let game: Awaited<ReturnType<typeof import('@game/config').createGameApp>> | null = null;
+let game: Awaited<ReturnType<typeof import('@game/main').createGameApp>> | null = null;
 
 onMounted(async () => {
   const canvas = canvasRef.value;
   if (!canvas) {
     return;
   }
-  const { createGameApp } = await import('@game/config');
+  const { createGameApp } = await import('@game/main');
   game = await createGameApp(canvas);
 });
 

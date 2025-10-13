@@ -1,6 +1,6 @@
 import type { BoardPosition, Player } from '../types';
 import { PlayerInfo } from '../types';
-import { HexUtils } from '../objects/Position';
+import { HexUtils } from '../logic/HexUtils';
 import type { AIAgent } from './AIAgent';
 import type { Move } from './MoveUtils';
 import {

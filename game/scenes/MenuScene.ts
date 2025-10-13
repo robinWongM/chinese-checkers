@@ -1,7 +1,8 @@
-import { ArcRotateCamera, Color3, HemisphericLight, Vector3 } from '@babylonjs/core';
+import { Camera, FreeCamera, Vector3 } from '@babylonjs/core';
 import { Control, StackPanel, TextBlock } from '@babylonjs/gui';
 import { BaseScene } from '../engine/BaseScene';
-import { UIButton } from '../objects/ui/UIButton';
+import { UIButton } from '../ui/UIButton';
+import { UiLayerManager } from '../systems/UiLayerManager';
 import type { GameMode } from '../config/setup';
 
 export class MenuScene extends BaseScene {
@@ -9,7 +10,8 @@ export class MenuScene extends BaseScene {
   private container!: StackPanel;
 
   async onEnter(): Promise<void> {
-    this.setupCameraAndLight();
+    this.ensureCamera();
+    this.replaceUI(UiLayerManager.createUI(this.scene, 'menu'));
     this.createUI();
     this.updateLayoutWidth();
   }
@@ -23,27 +25,16 @@ export class MenuScene extends BaseScene {
     this.buttons = [];
   }
 
-  private setupCameraAndLight(): void {
-    const camera = new ArcRotateCamera(
-      'menu-camera',
-      Math.PI / 2,
-      Math.PI / 2.6,
-      12,
-      new Vector3(0, 0, 0),
-      this.scene
-    );
-    camera.attachControl(this.app.getCanvas(), true);
-    camera.lowerRadiusLimit = 10;
-    camera.upperRadiusLimit = 12;
-    camera.panningAxis = Vector3.Zero();
-    camera.inputs.clear();
-    camera.allowUpsideDown = false;
-    camera.useAutoRotationBehavior = false;
-
-    const light = new HemisphericLight('menu-light', new Vector3(0, 1, 0), this.scene);
-    light.diffuse = new Color3(1, 1, 1);
-    light.groundColor = new Color3(0.1, 0.15, 0.2);
-    light.intensity = 0.9;
+  private ensureCamera(): void {
+    if (this.scene.activeCamera) {
+      return;
+    }
+    const camera = new FreeCamera('menu-ui-camera', new Vector3(0, 0, -1), this.scene);
+    camera.mode = Camera.ORTHOGRAPHIC_CAMERA;
+    camera.minZ = 0.1;
+    camera.maxZ = 10;
+    camera.setTarget(Vector3.Zero());
+    this.scene.activeCamera = camera;
   }
 
   private createUI(): void {

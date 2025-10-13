@@ -1,7 +1,7 @@
 import { StackPanel, TextBlock, Control } from '@babylonjs/gui';
 import type { AdvancedDynamicTexture } from '@babylonjs/gui';
-import type { Player } from '../../types';
-import { PlayerInfo } from '../../types';
+import type { Player } from '../types';
+import { PlayerInfo } from '../types';
 import { UIButton } from './UIButton';
 
 export interface GameHUDCallbacks {

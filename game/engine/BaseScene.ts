@@ -3,7 +3,7 @@ import { AdvancedDynamicTexture } from '@babylonjs/gui';
 import type { BabylonGame } from './BabylonGame';
 
 export abstract class BaseScene {
-  protected readonly ui: AdvancedDynamicTexture;
+  protected ui: AdvancedDynamicTexture;
 
   constructor(protected readonly app: BabylonGame, public readonly scene: Scene) {
     this.scene.clearColor = new Color4(15 / 255, 23 / 255, 42 / 255, 1);
@@ -28,5 +28,10 @@ export abstract class BaseScene {
 
   protected get engine(): Engine {
     return this.scene.getEngine() as Engine;
+  }
+
+  protected replaceUI(texture: AdvancedDynamicTexture): void {
+    this.ui.dispose();
+    this.ui = texture;
   }
 }

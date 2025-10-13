@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { MCTSAgent } from '../game/ai/MCTSAgent';
 import { Player } from '../game/types';
 import type { BoardPosition, GameConfig } from '../game/types';
-import { HexUtils } from '../game/objects/Position';
+import { HexUtils } from '../game/logic/HexUtils';
 
 const TEST_CONFIG: GameConfig = {
   playerCount: 2,

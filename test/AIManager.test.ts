@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { AIManager } from '../game/managers/AIManager';
 import { Player } from '../game/types';
 import type { BoardPosition, GameConfig } from '../game/types';
-import { HexUtils } from '../game/objects/Position';
+import { HexUtils } from '../game/logic/HexUtils';
 import { evaluateForwardProgress, getAllPossibleMoves } from '../game/ai/MoveUtils';
 
 // Skip slow tests in CI by setting a global flag

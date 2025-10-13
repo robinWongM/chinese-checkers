@@ -1,6 +1,6 @@
 import type { BoardPosition, HexPosition, Player } from '../types';
 import { PlayerInfo } from '../types';
-import { HexUtils } from '../objects/Position';
+import { HexUtils } from '../logic/HexUtils';
 
 export interface Move {
   from: HexPosition;

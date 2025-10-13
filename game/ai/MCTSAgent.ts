@@ -1,6 +1,6 @@
 import type { HexPosition, BoardPosition, Player, GameConfig } from '../types';
 import { PlayerInfo } from '../types';
-import { HexUtils } from '../objects/Position';
+import { HexUtils } from '../logic/HexUtils';
 import { MCTSNode } from './MCTSNode';
 import type { AIAgent } from './AIAgent';
 import type { Move } from './MoveUtils';

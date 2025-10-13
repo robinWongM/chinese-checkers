@@ -1,9 +1,4 @@
-import {
-  ArcRotateCamera,
-  Color3,
-  HemisphericLight,
-  Vector3
-} from '@babylonjs/core';
+import { Camera, FreeCamera, Vector3 } from '@babylonjs/core';
 import {
   Control,
   Ellipse,
@@ -23,7 +18,8 @@ import {
   type GameSetupOptions,
   type PlayerType
 } from '../config/setup';
-import { UIButton } from '../objects/ui/UIButton';
+import { UIButton } from '../ui/UIButton';
+import { UiLayerManager } from '../systems/UiLayerManager';
 
 export interface SetupSceneData {
   mode?: GameMode;
@@ -69,7 +65,8 @@ export class SetupScene extends BaseScene {
   private rootContainer: Rectangle | null = null;
 
   async onEnter(data?: SetupSceneData): Promise<void> {
-    this.setupCameraAndLight();
+    this.ensureCamera();
+    this.replaceUI(UiLayerManager.createUI(this.scene, 'setup'));
     this.initializeState(data);
     this.createLayout();
     this.updateControls();
@@ -82,24 +79,16 @@ export class SetupScene extends BaseScene {
     this.rootContainer = null;
   }
 
-  private setupCameraAndLight(): void {
-    const camera = new ArcRotateCamera(
-      'setup-camera',
-      Math.PI / 2.4,
-      Math.PI / 2.5,
-      16,
-      new Vector3(0, 0, 0),
-      this.scene
-    );
-    camera.attachControl(this.app.getCanvas(), true);
-    camera.inputs.clear();
-    camera.allowUpsideDown = false;
-    camera.useAutoRotationBehavior = false;
-
-    const light = new HemisphericLight('setup-light', new Vector3(0, 1, 0), this.scene);
-    light.intensity = 0.8;
-    light.diffuse = new Color3(1, 1, 1);
-    light.groundColor = new Color3(0.1, 0.15, 0.2);
+  private ensureCamera(): void {
+    if (this.scene.activeCamera) {
+      return;
+    }
+    const camera = new FreeCamera('setup-ui-camera', new Vector3(0, 0, -1), this.scene);
+    camera.mode = Camera.ORTHOGRAPHIC_CAMERA;
+    camera.minZ = 0.1;
+    camera.maxZ = 10;
+    camera.setTarget(Vector3.Zero());
+    this.scene.activeCamera = camera;
   }
 
   private initializeState(data: SetupSceneData | undefined): void {
