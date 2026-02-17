@@ -27,7 +27,7 @@ describe('web chinese checkers logic', () => {
     expect(moves.length).toBeGreaterThan(0);
   });
 
-  it('keeps jump gap consistent at exactly one piece distance', () => {
+  it('supports classic one-gap jump when the middle piece is adjacent', () => {
     const initial = createInitialState();
     const custom: GameState = {
       ...initial,
@@ -43,6 +43,41 @@ describe('web chinese checkers logic', () => {
 
     expect(moves).toContain(jumpTarget);
     expect(hexDistance(keyOf(0, 0, 0), jumpTarget)).toBe(2);
+  });
+
+  it('allows gap jump as long as landing mirrors distance around the middle piece', () => {
+    const initial = createInitialState();
+    const custom: GameState = {
+      ...initial,
+      pieces: [
+        { id: 'p1-test', player: 1, position: keyOf(0, 0, 0) },
+        { id: 'p2-middle', player: 2, position: keyOf(2, -2, 0) },
+      ],
+      currentPlayer: 1,
+    };
+
+    const moves = getValidMoves(custom, 'p1-test');
+    const jumpTarget = keyOf(4, -4, 0);
+
+    expect(moves).toContain(jumpTarget);
+    expect(hexDistance(keyOf(0, 0, 0), keyOf(2, -2, 0))).toBe(2);
+    expect(hexDistance(keyOf(2, -2, 0), jumpTarget)).toBe(2);
+  });
+
+  it('disallows jump if there are extra pieces between middle piece and destination', () => {
+    const initial = createInitialState();
+    const custom: GameState = {
+      ...initial,
+      pieces: [
+        { id: 'p1-test', player: 1, position: keyOf(0, 0, 0) },
+        { id: 'p2-middle', player: 2, position: keyOf(2, -2, 0) },
+        { id: 'p2-extra', player: 2, position: keyOf(3, -3, 0) },
+      ],
+      currentPlayer: 1,
+    };
+
+    const moves = getValidMoves(custom, 'p1-test');
+    expect(moves).not.toContain(keyOf(4, -4, 0));
   });
 
   it('does not overlap pieces in initial setup', () => {
