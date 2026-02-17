@@ -1,20 +1,148 @@
 @import "tailwindcss";
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+:root {
+  color-scheme: dark;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  margin: 0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top, #1f2a44, #090d18 60%);
+  color: #f8fafc;
 }
 
-canvas {
-  display: block;
-  margin: 0 auto;
+.game-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.panel {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  padding: 1.25rem;
+  backdrop-filter: blur(6px);
+}
+
+.subtitle {
+  margin-top: -0.3rem;
+  color: #cbd5e1;
+}
+
+.status-card {
+  margin: 1rem 0;
+  padding: 0.8rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 12px;
+}
+
+.winner {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.hint {
+  color: #94a3b8;
+  font-size: 0.92rem;
+}
+
+.legend {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.45rem;
+}
+
+.player-1,
+.player-one {
+  fill: #3b82f6;
+  background: #3b82f6;
+}
+
+.player-2,
+.player-two {
+  fill: #ef4444;
+  background: #ef4444;
+}
+
+.legal {
+  background: #22c55e;
+}
+
+.reset {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.board-wrapper {
+  overflow: auto;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+}
+
+.board {
+  width: 100%;
+  min-width: 700px;
+  height: 100%;
+}
+
+.cell {
+  fill: #0f172a;
+  stroke: #334155;
+  stroke-width: 1.6;
+  cursor: pointer;
+}
+
+.goal-one {
+  fill: #102a43;
+}
+
+.goal-two {
+  fill: #3f1717;
+}
+
+.piece {
+  stroke: #0f172a;
+  stroke-width: 2;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.piece:hover {
+  transform: scale(1.05);
+}
+
+.selected {
+  stroke: #facc15;
+  stroke-width: 3;
+}
+
+.legal-move {
+  fill: rgba(34, 197, 94, 0.35);
+  stroke: #22c55e;
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .game-shell {
+    grid-template-columns: 1fr;
+  }
 }
