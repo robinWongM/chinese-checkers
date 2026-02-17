@@ -1,6 +1,5 @@
 import { defineNuxtConfig } from 'nuxt/config';
 import { fileURLToPath } from 'node:url';
-import tailwindcss from "@tailwindcss/vite";
 
 const gameDir = fileURLToPath(new URL('./game', import.meta.url));
 
@@ -10,12 +9,9 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   alias: {
     '@game': gameDir,
-    '~game': gameDir
-  },
-  vite: {
-    plugins: [tailwindcss()]
+    '~game': gameDir,
   },
   typescript: {
-    typeCheck: true
+    typeCheck: true,
   },
 });
