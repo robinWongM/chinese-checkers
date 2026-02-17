@@ -207,18 +207,52 @@ export const getValidMoves = (state: GameState, pieceId: string): string[] => {
       return [];
     }
 
-    return DIRECTIONS
-      .map(([dq, dr, ds]) => {
-        const over = keyOf(currentCell.q + dq, currentCell.r + dr, currentCell.s + ds);
-        const landing = keyOf(currentCell.q + dq * 2, currentCell.r + dr * 2, currentCell.s + ds * 2);
+    const targets: string[] = [];
 
-        if (!occupied.has(over) || !state.cellMap.has(landing) || occupied.has(landing)) {
-          return null;
+    for (const [dq, dr, ds] of DIRECTIONS) {
+      let step = 1;
+      let pivotKey: string | null = null;
+
+      while (true) {
+        const probe = keyOf(currentCell.q + dq * step, currentCell.r + dr * step, currentCell.s + ds * step);
+        if (!state.cellMap.has(probe)) {
+          break;
         }
 
-        return landing;
-      })
-      .filter((target): target is string => target !== null);
+        if (occupied.has(probe)) {
+          pivotKey = probe;
+          break;
+        }
+
+        step += 1;
+      }
+
+      if (!pivotKey) {
+        continue;
+      }
+
+      const pivot = parseKey(pivotKey);
+      const landing = keyOf(pivot.q + dq * step, pivot.r + dr * step, pivot.s + ds * step);
+
+      if (!state.cellMap.has(landing) || occupied.has(landing)) {
+        continue;
+      }
+
+      let blocked = false;
+      for (let offset = 1; offset < step; offset += 1) {
+        const between = keyOf(pivot.q + dq * offset, pivot.r + dr * offset, pivot.s + ds * offset);
+        if (occupied.has(between)) {
+          blocked = true;
+          break;
+        }
+      }
+
+      if (!blocked) {
+        targets.push(landing);
+      }
+    }
+
+    return targets;
   };
 
   const queue = [piece.position];
